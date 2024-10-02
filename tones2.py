@@ -27,7 +27,7 @@ all_keys = [
     ['B', 'Db', 'Eb', 'E', 'Gb', 'Ab', 'Bb'],      # Cb major
 ]
 
-keys = all_keys[:3]
+keys = all_keys
 
 # Set minimum and maximum octaves
 min_octave = 3
@@ -73,13 +73,13 @@ def play_note(note, octave):
 
 # Play the scale before starting random notes
 print("Playing the scale:")
-for note in selected_key:
+for note in selected_key + [selected_key[0]]:
     play_note(note, scale_octave)
 print("End of scale")
 
 # Start time to track the duration
 start_time = time.time()
-duration = 20 * 60  # 20 minutes in seconds
+duration = 40 * 60  # 20 minutes in seconds
 
 # Main loop to play random notes
 try:
