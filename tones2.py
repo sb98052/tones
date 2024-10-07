@@ -14,7 +14,7 @@ all_keys = [
     ['C', 'D', 'E', 'F', 'G', 'A', 'B'],           # C major
     ['G', 'A', 'B', 'C', 'D', 'E', 'Gb'],          # G major (F# is Gb)
     ['F', 'G', 'A', 'Bb', 'C', 'D', 'E'],          # F major
-    ['D', 'E', 'Gb', 'G', 'A', 'B', 'Db'],         # D major (F# is Gb, C# is Db)
+   ['D', 'E', 'Gb', 'G', 'A', 'B', 'Db'],         # D major (F# is Gb, C# is Db)
     ['A', 'B', 'Db', 'D', 'E', 'Gb', 'Ab'],        # A major (C# is Db, F# is Gb, G# is Ab)
     ['E', 'Gb', 'Ab', 'A', 'B', 'Db', 'Eb'],       # E major (F# is Gb, G# is Ab, C# is Db, D# is Eb)
     ['B', 'Db', 'Eb', 'E', 'Gb', 'Ab', 'Bb'],      # B major (C# is Db, D# is Eb, F# is Gb, G# is Ab, A# is Bb)
@@ -34,7 +34,7 @@ min_octave = 3
 max_octave = 5
 
 # Set note duration in seconds
-note_duration = 2.0  # Duration for which each note is played
+note_duration = 1.0  # Duration for which each note is played
 
 # Choose a random key from the list
 selected_key = random.choice(keys)
@@ -67,7 +67,7 @@ def play_note(note, octave):
         note_channel.stop()
 
         # Optional: Add a short pause between notes
-        time.sleep(0.5)
+        #time.sleep(0.25)
     else:
         print(f"File not found: {file_path}")
 
@@ -79,7 +79,7 @@ print("End of scale")
 
 # Start time to track the duration
 start_time = time.time()
-duration = 40 * 60  # 20 minutes in seconds
+duration = 40 * 60  # 40 minutes in seconds
 
 # Main loop to play random notes
 try:
