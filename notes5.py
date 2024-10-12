@@ -34,7 +34,7 @@ min_octave = 3
 max_octave = 5
 
 # Set note duration in seconds
-note_duration = 2.0  # Duration for which each note is played
+note_duration = 1.0  # Duration for which each note is played
 
 # Choose a random key from the list
 selected_key = random.choice(keys)
@@ -125,16 +125,16 @@ try:
             print("40 minutes have passed. Stopping the program.")
             break
 
+        # Randomize the number of notes in the chunk
+        chunk_size = random.randint(1, 7)
 
         # Randomly choose chunk type: 'random', 'scale', or 'arpeggio'
         chunk_type = random.choice(['random', 'scale', 'arpeggio'])
-
 
         chunk_notes = []
         chunk_octaves = []
 
         if chunk_type == 'random':
-            chunk_size = random.randint(1, 7)
             # Generate random chunk
             for _ in range(chunk_size):
                 # Choose a random note from the selected key
@@ -145,7 +145,6 @@ try:
                 chunk_octaves.append(octave)
 
         elif chunk_type == 'scale':
-            chunk_size = random.randint(3, 12)
             # Generate scale chunk
             # Randomly choose starting note from selected_key
             start_index = random.randint(0, len(selected_key) - 1)
@@ -155,7 +154,7 @@ try:
             # Randomly choose an octave
             octave = random.randint(min_octave, max_octave)
 
-            # Initialize previous note and octave
+            # Build the chunk
             prev_note = selected_key[start_index]
             prev_octave = octave
             chunk_notes.append(prev_note)
@@ -186,7 +185,7 @@ try:
         elif chunk_type == 'arpeggio':
             # Generate arpeggio chunk
             # Arpeggio chunk size is between 3 and 7 notes
-            chunk_size = random.randint(3, 12)
+            chunk_size = random.randint(3, 7)
 
             # Randomly choose root note index from selected_key
             root_index = random.randint(0, len(selected_key) - 1)
@@ -227,12 +226,9 @@ try:
                     prev_octave = next_octave
 
                 # Prepare for next iteration
-                # Update prev_note and prev_octave to the last note played
-                if note_count >= chunk_size:
-                    break  # Reached desired chunk size
+                prev_note = root_note
+                prev_octave += 1  # Move to next octave
 
-                # Move to next octave for the next arpeggio sequence
-                prev_octave += 1
                 if prev_octave > max_octave:
                     break  # Can't go beyond octave limits
         else:
@@ -249,3 +245,4 @@ finally:
     # Stop all sounds and quit pygame
     pygame.mixer.stop()
     pygame.quit()
+

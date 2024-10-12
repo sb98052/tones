@@ -43,30 +43,6 @@ print(f"Selected key: {selected_key}")
 # Set the octave for the scale
 scale_octave = 4  # You can choose any octave within min_octave and max_octave
 
-# Map note names to semitone numbers
-note_semitones = {
-    'C': 0,
-    'C#': 1,
-    'Db': 1,
-    'D': 2,
-    'D#': 3,
-    'Eb': 3,
-    'E': 4,
-    'Fb': 4,
-    'E#': 5,
-    'F': 5,
-    'F#': 6,
-    'Gb': 6,
-    'G': 7,
-    'G#': 8,
-    'Ab': 8,
-    'A': 9,
-    'A#': 10,
-    'Bb': 10,
-    'B': 11,
-    'Cb': 11,
-}
-
 # Function to play a note
 def play_note(note, octave):
     filename = f"{note}{octave}.mp3"
@@ -98,20 +74,17 @@ for note in selected_key + [selected_key[0]]:
     play_note(note, scale_octave)
 print("End of scale")
 
-# Function to adjust the octave based on pitch comparison
-def adjust_octave(prev_note, prev_octave, next_note, next_octave, direction):
-    prev_abs_pitch = prev_octave * 12 + note_semitones[prev_note]
-    next_abs_pitch = next_octave * 12 + note_semitones[next_note]
-
+# Helper function to determine if octave should change between two notes
+def adjust_octave(prev_note, next_note, octave, direction):
     if direction == 'ascending':
-        while next_abs_pitch <= prev_abs_pitch and next_octave < max_octave:
-            next_octave += 1
-            next_abs_pitch = next_octave * 12 + note_semitones[next_note]
+        # Increase octave when moving from 'B' to 'C'
+        if prev_note == 'B' and next_note == 'C':
+            return octave + 1
     elif direction == 'descending':
-        while next_abs_pitch >= prev_abs_pitch and next_octave > min_octave:
-            next_octave -= 1
-            next_abs_pitch = next_octave * 12 + note_semitones[next_note]
-    return next_octave
+        # Decrease octave when moving from 'C' to 'B'
+        if prev_note == 'C' and next_note == 'B':
+            return octave - 1
+    return octave
 
 # Start time to track the duration
 start_time = time.time()
@@ -125,16 +98,16 @@ try:
             print("40 minutes have passed. Stopping the program.")
             break
 
+        # Randomize the number of notes in the chunk
+        chunk_size = random.randint(1, 7)
 
         # Randomly choose chunk type: 'random', 'scale', or 'arpeggio'
         chunk_type = random.choice(['random', 'scale', 'arpeggio'])
-
 
         chunk_notes = []
         chunk_octaves = []
 
         if chunk_type == 'random':
-            chunk_size = random.randint(1, 7)
             # Generate random chunk
             for _ in range(chunk_size):
                 # Choose a random note from the selected key
@@ -145,7 +118,6 @@ try:
                 chunk_octaves.append(octave)
 
         elif chunk_type == 'scale':
-            chunk_size = random.randint(3, 12)
             # Generate scale chunk
             # Randomly choose starting note from selected_key
             start_index = random.randint(0, len(selected_key) - 1)
@@ -155,38 +127,34 @@ try:
             # Randomly choose an octave
             octave = random.randint(min_octave, max_octave)
 
-            # Initialize previous note and octave
+            # Build the chunk
             prev_note = selected_key[start_index]
-            prev_octave = octave
-            chunk_notes.append(prev_note)
-            chunk_octaves.append(prev_octave)
-
-            for i in range(1, chunk_size):
+            for i in range(chunk_size):
+                # Calculate the index of the next note
                 if direction == 'ascending':
                     index = (start_index + i) % len(selected_key)
                 else:
                     index = (start_index - i) % len(selected_key)
-                next_note = selected_key[index]
-                next_octave = prev_octave  # Start with previous octave
 
-                # Adjust octave based on pitch comparison
-                next_octave = adjust_octave(prev_note, prev_octave, next_note, next_octave, direction)
+                next_note = selected_key[index]
+
+                # Adjust octave if moving from 'B' to 'C' or 'C' to 'B'
+                octave = adjust_octave(prev_note, next_note, octave, direction)
 
                 # Check if octave is within min_octave and max_octave
-                if next_octave < min_octave or next_octave > max_octave:
-                    break  # Can't add more notes
+                if octave < min_octave or octave > max_octave:
+                    # Can't add more notes, break out of the loop
+                    break
 
                 chunk_notes.append(next_note)
-                chunk_octaves.append(next_octave)
+                chunk_octaves.append(octave)
 
-                # Update previous note and octave for next iteration
-                prev_note = next_note
-                prev_octave = next_octave
+                prev_note = next_note  # Update previous note
 
         elif chunk_type == 'arpeggio':
             # Generate arpeggio chunk
             # Arpeggio chunk size is between 3 and 7 notes
-            chunk_size = random.randint(3, 12)
+            chunk_size = random.randint(3, 7)
 
             # Randomly choose root note index from selected_key
             root_index = random.randint(0, len(selected_key) - 1)
@@ -200,40 +168,36 @@ try:
 
             note_count = 0
             prev_note = root_note
-            prev_octave = octave
 
             while note_count < chunk_size:
                 for interval in arpeggio_intervals:
+                    # Calculate note index
                     index = (root_index + interval) % len(selected_key)
                     next_note = selected_key[index]
-                    next_octave = prev_octave  # Start with previous octave
 
-                    # Adjust octave based on pitch comparison
-                    next_octave = adjust_octave(prev_note, prev_octave, next_note, next_octave, 'ascending')
+                    # Adjust octave when wrapping from 'B' to 'C'
+                    octave = adjust_octave(prev_note, next_note, octave, 'ascending')
 
                     # Check if octave is within bounds
-                    if next_octave < min_octave or next_octave > max_octave:
-                        break  # Can't add more notes
+                    if octave < min_octave or octave > max_octave:
+                        # Can't add more notes, break out of loops
+                        break
 
                     chunk_notes.append(next_note)
-                    chunk_octaves.append(next_octave)
+                    chunk_octaves.append(octave)
                     note_count += 1
 
                     if note_count >= chunk_size:
                         break  # Reached desired chunk size
 
-                    # Update previous note and octave
-                    prev_note = next_note
-                    prev_octave = next_octave
+                    prev_note = next_note  # Update previous note
 
-                # Prepare for next iteration
-                # Update prev_note and prev_octave to the last note played
-                if note_count >= chunk_size:
-                    break  # Reached desired chunk size
+                prev_note = root_note  # Reset for next octave
+                # Move to next octave
+                octave += 1
 
-                # Move to next octave for the next arpeggio sequence
-                prev_octave += 1
-                if prev_octave > max_octave:
+                # Check if octave is within bounds
+                if octave > max_octave:
                     break  # Can't go beyond octave limits
         else:
             print(f"Unknown chunk type: {chunk_type}")
