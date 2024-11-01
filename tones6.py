@@ -34,7 +34,7 @@ min_octave = 3
 max_octave = 5
 
 # Set note duration in seconds
-note_duration = 2.0  # Duration for which each note is played
+note_duration = 1.0  # Duration for which each note is played
 
 # Choose a random key from the list
 selected_key = random.choice(keys)
@@ -68,14 +68,19 @@ note_semitones = {
 }
 
 # Function to play a note
-def play_note(note, octave):
+def play_note(note, octave, degree = None):
     filename = f"{note}{octave}.mp3"
     file_path = os.path.join(sound_folder, filename)
 
     # Check if the file exists
     if os.path.exists(file_path):
         # Print the note being played
-        print(f"Playing {note}{octave}")
+        if degree is not None:
+            degree=f"({degree+1})"
+        else:
+            degree=""
+
+        print(f"Playing {note}{octave} {degree}")
 
         # Load the note sound
         note_sound = pygame.mixer.Sound(file_path)
@@ -238,11 +243,25 @@ try:
         else:
             print(f"Unknown chunk type: {chunk_type}")
             continue  # Skip to the next iteration
+        if random.choice([True, False]):
+            chunk_notes.reverse()
+            chunk_octaves.reverse()
 
         # Play the chunk
         print(f"Playing a {chunk_type} chunk with {len(chunk_notes)} notes.")
         for note, octave in zip(chunk_notes, chunk_octaves):
-            play_note(note, octave)
+            play_note(note, octave, selected_key.index(note))
+        if chunk_type == 'arpeggio':
+            input("press enter to hear it again")
+            for note, octave in zip(chunk_notes, chunk_octaves):
+                play_note(note, octave, selected_key.index(note))
+            input("press enter to hear it again")
+            for note, octave in zip(chunk_notes, chunk_octaves):
+                play_note(note, octave, selected_key.index(note))
+
+
+
+
 except KeyboardInterrupt:
     print("Program terminated by user.")
 finally:
