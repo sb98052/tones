@@ -116,8 +116,8 @@ def play_note(note, octave, degree = None):
 # Play the scale before starting random chunks
 print("Playing the scale:")
 
-for i in range(8):
-    play_note(selected_key[i], scale_octave)
+#for i in range(8):
+#    play_note(selected_key[i], scale_octave)
 
 print("End of scale")
 
@@ -136,6 +136,7 @@ try:
 
         # Randomly choose chunk type: 'random', 'scale', or 'arpeggio'
         chunk_type = random.choice(['random', 'scale', 'arpeggio'])
+        chunk_type = 'arpeggio'
 
 
         chunk_notes = []
@@ -150,7 +151,6 @@ try:
                 # Choose a random octave
                 octave = random.randint(min_octave, max_octave)
                 chunk_notes.append(note)
-                chunk_octaves.append(octave)
 
         elif chunk_type == 'scale':
             chunk_size = random.randint(3, 12)
@@ -167,7 +167,6 @@ try:
             prev_note = selected_key[start_index]
             prev_octave = octave
             chunk_notes.append(prev_note)
-            chunk_octaves.append(prev_octave)
 
             for i in range(1, chunk_size):
                 if direction == 'ascending':
@@ -175,26 +174,16 @@ try:
                 else:
                     index = (start_index - i) % len(selected_key)
                 next_note = selected_key[index]
-                next_octave = prev_octave  # Start with previous octave
-
-                # Adjust octave based on pitch comparison
-                next_octave = adjust_octave(prev_note, prev_octave, next_note, next_octave, direction)
-
-                # Check if octave is within min_octave and max_octave
-                if next_octave < min_octave or next_octave > max_octave:
-                    break  # Can't add more notes
 
                 chunk_notes.append(next_note)
-                chunk_octaves.append(next_octave)
 
                 # Update previous note and octave for next iteration
                 prev_note = next_note
-                prev_octave = next_octave
 
         elif chunk_type == 'arpeggio':
             # Generate arpeggio chunk
             # Arpeggio chunk size is between 3 and 7 notes
-            chunk_size = random.randint(3, 12)
+            chunk_size = random.randint(3, 17)
 
             # Randomly choose root note index from selected_key
             root_index = random.randint(0, len(selected_key) - 1)
@@ -204,66 +193,44 @@ try:
             octave = random.randint(min_octave, max_octave)
 
             # Arpeggio intervals (relative to root note index): root, 3rd, 5th
-            arpeggio_intervals = [0, 2, 4]  # Offsets in scale degrees
+            arpeggio_intervals = [2, 2, 3]
 
             note_count = 0
             prev_note = root_note
             prev_octave = octave
 
-            while note_count < chunk_size:
-                for interval in arpeggio_intervals:
-                    index = (root_index + interval) % len(selected_key)
+            index = root_index
+            for note_count in range(0, chunk_size):
+                try:
                     next_note = selected_key[index]
-                    next_octave = prev_octave  # Start with previous octave
+                except IndexError:
+                    break
 
-                    # Adjust octave based on pitch comparison
-                    next_octave = adjust_octave(prev_note, prev_octave, next_note, next_octave, 'ascending')
+                chunk_notes.append(next_note)
 
-                    # Check if octave is within bounds
-                    if next_octave < min_octave or next_octave > max_octave:
-                        break  # Can't add more notes
+                index+=arpeggio_intervals[note_count%3]
+                note_count += 1
+            chunk_size = note_count
 
-                    chunk_notes.append(next_note)
-                    chunk_octaves.append(next_octave)
-                    note_count += 1
-
-                    if note_count >= chunk_size:
-                        break  # Reached desired chunk size
-
-                    # Update previous note and octave
-                    prev_note = next_note
-                    prev_octave = next_octave
-
-                # Prepare for next iteration
-                # Update prev_note and prev_octave to the last note played
-                if note_count >= chunk_size:
-                    break  # Reached desired chunk size
-
-                # Move to next octave for the next arpeggio sequence
-                prev_octave += 1
-                if prev_octave > max_octave:
-                    break  # Can't go beyond octave limits
         else:
             print(f"Unknown chunk type: {chunk_type}")
             continue  # Skip to the next iteration
         if random.choice([True, False]):
             chunk_notes.reverse()
-            chunk_octaves.reverse()
 
         # Play the chunk
         print(f"Playing a {chunk_type} chunk with {len(chunk_notes)} notes.")
-        for note, octave in zip(chunk_notes, chunk_octaves):
-            play_note(note, octave, selected_key.index(note))
+        for note in chunk_notes:
+            play_note(note, selected_key.index(note))
         if chunk_type == 'arpeggio':
             input("press enter to hear it again")
-            for note, octave in zip(chunk_notes, chunk_octaves):
-                play_note(note, octave, selected_key.index(note))
+
+            for note in chunk_notes:
+                play_note(note, selected_key.index(note))
             input("press enter to hear it again")
-            for note, octave in zip(chunk_notes, chunk_octaves):
-                play_note(note, octave, selected_key.index(note))
 
-
-
+            for note in chunk_notes:
+                play_note(note, selected_key.index(note))
 
 except KeyboardInterrupt:
     print("Program terminated by user.")
