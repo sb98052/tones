@@ -84,10 +84,10 @@ scale_octave = 4  # You can choose any octave within min_octave and max_octave
 
 
 # Function to play a note
-def play_note(note, octave, degree = None):
+def play_note(note, degree = None):
     filename = f"{note}.mp3"
     file_path = os.path.join(sound_folder, filename)
-
+    degree = degree % 7
     # Check if the file exists
     if os.path.exists(file_path):
         # Print the note being played
@@ -116,8 +116,8 @@ def play_note(note, octave, degree = None):
 # Play the scale before starting random chunks
 print("Playing the scale:")
 
-#for i in range(8):
-#    play_note(selected_key[i], scale_octave)
+for i in range(8):
+    play_note(selected_key[i], scale_octave)
 
 print("End of scale")
 
@@ -136,7 +136,6 @@ try:
 
         # Randomly choose chunk type: 'random', 'scale', or 'arpeggio'
         chunk_type = random.choice(['random', 'scale', 'arpeggio'])
-        chunk_type = 'arpeggio'
 
 
         chunk_notes = []
@@ -223,11 +222,7 @@ try:
         for note in chunk_notes:
             play_note(note, selected_key.index(note))
         if chunk_type == 'arpeggio':
-            input("press enter to hear it again")
-
-            for note in chunk_notes:
-                play_note(note, selected_key.index(note))
-            input("press enter to hear it again")
+            time.sleep(6)
 
             for note in chunk_notes:
                 play_note(note, selected_key.index(note))
