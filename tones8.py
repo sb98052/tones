@@ -170,7 +170,6 @@ try:
 
         # Randomly choose chunk type: 'random', 'scale', or 'arpeggio'
         chunk_type = random.choice(['random', 'scale', 'arpeggio', 'chord'])
-        chunk_type = 'chord'
 
 
         chunk_notes = []
