@@ -62,8 +62,8 @@ for key in all_keys:
     prev_note = None
     while octave<=max_octave:
         for note in key:
-            if prev_note:
-                print(f'{octave} {prev_note} {note} {note_semitones[prev_note]} {note_semitones[note]} {note_semitones["C"]}')
+            # if prev_note:
+            #    print(f'{octave} {prev_note} {note} {note_semitones[prev_note]} {note_semitones[note]} {note_semitones["C"]}')
             if prev_note and note_semitones[prev_note] > note_semitones[note]:
                 octave+=1
             notes.append(f'{note}{octave}')
@@ -278,29 +278,38 @@ try:
         else:
             print(f"Unknown chunk type: {chunk_type}")
             continue  # Skip to the next iteration
+
+        if len(chunk_notes)<3:
+            continue
+
         if random.choice([True, False]):
             chunk_notes.reverse()
 
         # Play the chunk
         print(f"Playing a {chunk_type} chunk with {len(chunk_notes)} notes.")
-        if chunk_type == 'arpeggio':
+        if chunk_type in ['arpeggio', 'chord']:
+            if chunk_type == 'arpeggio':
+                for note in chunk_notes:
+                    play_note(note, selected_key.index(note))
+            if chunk_type == 'chord':
+                for note in chunk_notes:
+                    print(f"{selected_key.index(note) % 7 + 1}")
+                play_notes(chunk_notes)
+
+            if chunk_type == 'arpeggio':
+                time.sleep(6)
+
+                for note in chunk_notes:
+                    play_note(note, selected_key.index(note))
+
+            if chunk_type == 'chord':
+                time.sleep(6)
+
+                play_notes(chunk_notes)
+        else:
             for note in chunk_notes:
                 play_note(note, selected_key.index(note))
-        if chunk_type == 'chord':
-            for note in chunk_notes:
-                print(f"{selected_key.index(note) % 7 + 1}")
-            play_notes(chunk_notes)
 
-        if chunk_type == 'arpeggio':
-            time.sleep(6)
-
-            for note in chunk_notes:
-                play_note(note, selected_key.index(note))
-
-        if chunk_type == 'chord':
-            time.sleep(6)
-
-            play_notes(chunk_notes)
 
 except KeyboardInterrupt:
     print("Program terminated by user.")
