@@ -78,6 +78,11 @@ note_duration = 1.0  # Duration for which each note is played
 selected_key = random.choice(fkeys)
 print(f"Selected key: {selected_key}")
 
+
+one_chord = list(map(selected_key.__getitem__, [0, 2, 4]))
+four_chord = list(map(selected_key.__getitem__, [3, 5, 7]))
+five_chord = list(map(selected_key.__getitem__, [4, 6, 8]))
+
 # Set the octave for the scale
 scale_octave = 4  # You can choose any octave within min_octave and max_octave
 
@@ -158,6 +163,9 @@ print("End of scale")
 # Start time to track the duration
 start_time = time.time()
 duration = 40 * 60  # 40 minutes in seconds
+
+count = 0
+cadence_freq = 5
 
 # Main loop to play random chunks
 try:
@@ -284,6 +292,15 @@ try:
 
         if random.choice([True, False]):
             chunk_notes.reverse()
+
+        if count%cadence_freq == 0:
+            play_notes(one_chord)
+            play_notes(four_chord)
+            play_notes(five_chord)
+            play_notes(one_chord)
+        count+=1
+
+        
 
         # Play the chunk
         print(f"Playing a {chunk_type} chunk with {len(chunk_notes)} notes.")
