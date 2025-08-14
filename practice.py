@@ -66,10 +66,11 @@ class Key:
 
 # ── AUDIO & SPEECH ──────────────────────────────────────────────────
 class Player:
-    def __init__(self, folder=SOUND_FOLDER, dur=NOTE_DUR, vol=5.0, chans=32):
+    def __init__(self, folder=SOUND_FOLDER, dur=NOTE_DUR, vol=5.0, chans=32, speech_vol=70):
         pygame.mixer.init()
         pygame.mixer.set_num_channels(chans)
         self.f, self.dur, self.vol = folder, dur, vol
+        self.speech_vol = speech_vol  # 0-100 for macOS system volume
 
     # internal helpers ------------------------------------------------
     def _snd(self, n):
@@ -80,8 +81,20 @@ class Player:
         if not sys.platform.startswith("darwin"):
             return  # only available (and requested) on macOS
         phrase = " ".join(str(d + 1) for d in degs)
+        
+        # Save current volume
+        result = subprocess.run(["osascript", "-e", "output volume of (get volume settings)"], 
+                              capture_output=True, text=True, check=True)
+        saved_vol = int(result.stdout.strip())
+        
+        # Set speech volume
+        subprocess.run(["osascript", "-e", f"set volume output volume {self.speech_vol}"], check=True)
+        
         # Blocking call – waits until speech is complete
         subprocess.run(["say", phrase], check=True)
+        
+        # Restore original volume
+        subprocess.run(["osascript", "-e", f"set volume output volume {saved_vol}"], check=True)
 
     # public playback -------------------------------------------------
     def note(self, n, show, deg):
@@ -232,11 +245,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--tonality', choices=('minor', 'major'),
                     default='minor', help='minor (default) or major cadence')
+    ap.add_argument('--speech-volume', type=int, default=70,
+                    help='Volume for speech (0-100, default 70)')
     args = ap.parse_args()
 
     sig = random.choice(KEY_SIGS)
     print("Key:", *sig, "| Tonality:", args.tonality)
-    Session(Player(), Gen(Key(sig)), args.tonality).run()
+    Session(Player(speech_vol=args.speech_volume), Gen(Key(sig)), args.tonality).run()
 
 if __name__ == '__main__':
     main()
