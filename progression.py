@@ -145,12 +145,12 @@ class Key:
 
 # ── AUDIO & SPEECH ──────────────────────────────────────────────────
 class Player:
-    def __init__(self, folder=SOUND_FOLDER, vol=5.0, chans=32, speech_vol=70, chord_vol=0.15, melody_vol=1.0):
+    def __init__(self, folder=SOUND_FOLDER, vol=5.0, chans=32, speech_vol=0.7, chord_vol=0.15, melody_vol=1.0):
         pygame.mixer.init()
         pygame.mixer.set_num_channels(chans)
         self.folder = folder
         self.vol = vol
-        self.speech_vol = speech_vol
+        self.speech_vol = speech_vol  # 0.0-1.0 scale (converted to 0-100 for macOS)
         self.chord_vol = chord_vol  # Volume multiplier for chord notes
         self.melody_vol = melody_vol  # Volume multiplier for melody notes
     
@@ -174,9 +174,10 @@ class Player:
         except (ValueError, subprocess.CalledProcessError):
             saved_vol = 50  # Default fallback
         
-        # Set speech volume
+        # Set speech volume (convert 0.0-1.0 to 0-100)
         try:
-            subprocess.run(["osascript", "-e", f"set volume output volume {self.speech_vol}"], check=True)
+            volume_percent = int(self.speech_vol * 100)
+            subprocess.run(["osascript", "-e", f"set volume output volume {volume_percent}"], check=True)
         except subprocess.CalledProcessError:
             pass  # Continue even if we can't set volume
         
@@ -389,8 +390,8 @@ def main():
                        default='minor_swing', help='Progression to practice')
     parser.add_argument('--tempo', type=int, default=120,
                        help='Tempo in BPM (default: 120)')
-    parser.add_argument('--speech-volume', type=int, default=70,
-                       help='Volume for speech (0-100, default: 70)')
+    parser.add_argument('--speech-volume', type=float, default=0.7,
+                       help='Volume for speech (0.0-1.0, default: 0.7)')
     parser.add_argument('--only-harmony', action='store_true',
                        help='Play only the chord progression without melody and labels')
     parser.add_argument('--key', type=str, default=None,
