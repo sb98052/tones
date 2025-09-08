@@ -15,7 +15,7 @@ import pygame
 
 # ── CONFIG ──────────────────────────────────────────────────────────
 SOUND_FOLDER = Path("notes")
-CHORD_OCTAVE_RANGE = (2, 3)  # Lower register for chords
+CHORD_OCTAVE_RANGE = (3, 4)  # Lower register for chords
 MELODY_OCTAVE_RANGE = (5, 6)  # Higher register for melody (5th and 6th octaves)
 TEMPO = 120  # BPM
 BEAT_DURATION = 60.0 / TEMPO  # Duration of one beat in seconds
@@ -236,12 +236,13 @@ class Player:
 
 # ── PROGRESSION PLAYER ──────────────────────────────────────────────
 class ProgressionSession:
-    def __init__(self, player: Player, key: Key, progression_name: str, only_harmony: bool = False):
+    def __init__(self, player: Player, key: Key, progression_name: str, only_harmony: bool = False, chord_octaves: Tuple[int, int] = CHORD_OCTAVE_RANGE):
         self.player = player
         self.key = key
         self.progression = PROGRESSIONS[progression_name]
         self.chord_sequence = self.progression['chords']
         self.only_harmony = only_harmony
+        self.chord_octaves = chord_octaves
         self.label_ambiguities = self._analyze_label_ambiguities()
     
     def _analyze_label_ambiguities(self) -> Dict[str, set]:
@@ -274,7 +275,7 @@ class ProgressionSession:
         # Convert solfege to actual notes
         chord_notes = []
         for deg in degrees[:3]:  # Take first 3 for triad
-            note = self.key.solfege_to_note(deg, random.choice(CHORD_OCTAVE_RANGE))
+            note = self.key.solfege_to_note(deg, random.choice(self.chord_octaves))
             chord_notes.append(note)
         
         return chord_notes, degrees
@@ -314,13 +315,18 @@ class ProgressionSession:
         chord_channels = []
         for note in chord_notes:
             ch = self.player._snd(note).play(loops=0)
-            ch.set_volume(self.player.vol * 0.5)
-            chord_channels.append(ch)
+            if ch:
+                ch.set_volume(self.player.vol * 0.5)
+                chord_channels.append(ch)
         
         time.sleep(duration)
         
         for ch in chord_channels:
-            ch.stop()
+            if ch:
+                ch.stop()
+        
+        # Clean up to prevent channel buildup
+        pygame.mixer.stop()
     
     def run(self):
         """Run the progression loop"""
@@ -370,11 +376,15 @@ class ProgressionSession:
                         
                         # 7. Stop the chord channels after everything is done
                         for ch in chord_channels:
-                            ch.stop()
+                            if ch:
+                                ch.stop()
                         if melody_ch:
                             melody_ch.stop()
                         if melody_ch2:
                             melody_ch2.stop()
+                        
+                        # Clean up all channels to prevent buildup
+                        pygame.mixer.stop()
                     
                     print()
         
@@ -400,6 +410,8 @@ def main():
                        help='Volume for chord notes (0.0-1.0, default: 0.07)')
     parser.add_argument('--melody-volume', type=float, default=1.0,
                        help='Volume for melody notes (0.0-1.0, default: 1.0)')
+    parser.add_argument('--chord-octaves', type=str, default='3,4',
+                       help='Octaves for chord notes (e.g., "3,4" for 3rd and 4th octaves)')
     
     args = parser.parse_args()
     
@@ -456,9 +468,15 @@ def main():
     mode = PROGRESSIONS[args.progression]['mode']
     key = Key(key_sig, mode)
     
+    # Parse chord octaves
+    chord_octaves = tuple(int(x.strip()) for x in args.chord_octaves.split(','))
+    if len(chord_octaves) != 2:
+        print("Warning: chord-octaves should be two numbers separated by comma (e.g., '3,4'). Using default.")
+        chord_octaves = CHORD_OCTAVE_RANGE
+    
     # Create player and session
     player = Player(speech_vol=args.speech_volume, chord_vol=args.chord_volume, melody_vol=args.melody_volume)
-    session = ProgressionSession(player, key, args.progression, args.only_harmony)
+    session = ProgressionSession(player, key, args.progression, args.only_harmony, chord_octaves)
     
     # Run
     session.run()
