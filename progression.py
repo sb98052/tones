@@ -30,7 +30,7 @@ SOLFEGE_TO_SEMI = {
 
 # Solfege pronunciation mapping for speech
 SOLFEGE_PRONUNCIATION = {
-    'do': 'doe', 're': 'ray', 'mi': 'me', 'fa': 'fah', 'sol': 'soul', 'la': 'lah', 'ti': 'tea',
+    'do': 'doe', 're': 'ray', 'mi': 'me', 'fa': 'far', 'sol': 'so', 'la': 'la', 'ti': 'tea',
     'di': 'dee', 'ra': 'rah', 'ri': 'ree', 'me': 'may', 'fi': 'fee', 'se': 'say', 
     'si': 'see', 'le': 'lay', 'li': 'lee', 'te': 'tay'
 }
@@ -145,12 +145,14 @@ class Key:
 
 # ── AUDIO & SPEECH ──────────────────────────────────────────────────
 class Player:
-    def __init__(self, folder=SOUND_FOLDER, vol=5.0, chans=32, speech_vol=70):
+    def __init__(self, folder=SOUND_FOLDER, vol=5.0, chans=32, speech_vol=70, chord_vol=0.15, melody_vol=1.0):
         pygame.mixer.init()
         pygame.mixer.set_num_channels(chans)
         self.folder = folder
         self.vol = vol
         self.speech_vol = speech_vol
+        self.chord_vol = chord_vol  # Volume multiplier for chord notes
+        self.melody_vol = melody_vol  # Volume multiplier for melody notes
     
     def _snd(self, note):
         return pygame.mixer.Sound(str(self.folder / f"{note}.mp3"))
@@ -183,7 +185,7 @@ class Player:
         for note in chord_notes:
             ch = self._snd(note).play(loops=0)
             if ch:
-                ch.set_volume(self.vol * 0.15)  # 15% volume per chord note
+                ch.set_volume(self.vol * self.chord_vol)  # Configurable chord volume
                 chord_channels.append(ch)
             else:
                 print(f"Warning: Could not play chord note {note}")
@@ -193,7 +195,7 @@ class Player:
         if melody_ch:
             melody_sound = self._snd(melody_note)
             melody_ch.play(melody_sound)
-            melody_ch.set_volume(self.vol * 1.0)  # 100% volume for melody
+            melody_ch.set_volume(self.vol * self.melody_vol)  # Configurable melody volume
         else:
             print(f"Warning: No channel available for melody {melody_note}")
             melody_ch = None
@@ -208,7 +210,7 @@ class Player:
         print(f"  Melody only: {melody_note}")
         ch = self._snd(melody_note).play(loops=0)
         if ch:
-            ch.set_volume(self.vol * 1.0)  # 100% volume for melody
+            ch.set_volume(self.vol * self.melody_vol)  # Configurable melody volume
         time.sleep(duration)
         # Let the note ring out naturally, don't stop it
         return ch
@@ -256,7 +258,7 @@ class ProgressionSession:
         
         # Create label with proper pronunciation
         degree_pronunciation = SOLFEGE_PRONUNCIATION.get(chosen_degree, chosen_degree)
-        label = f"{degree_pronunciation} {position} {quality}"
+        label = f"{degree_pronunciation}, {position}, {quality}"
         
         return melody_note, label
     
@@ -349,6 +351,10 @@ def main():
                        help='Play only the chord progression without melody and labels')
     parser.add_argument('--key', type=str, default=None,
                        help='Key to use (e.g., C, G, Dm, Am). If not specified, random key is chosen')
+    parser.add_argument('--chord-volume', type=float, default=0.15,
+                       help='Volume for chord notes (0.0-1.0, default: 0.15)')
+    parser.add_argument('--melody-volume', type=float, default=1.0,
+                       help='Volume for melody notes (0.0-1.0, default: 1.0)')
     
     args = parser.parse_args()
     
@@ -406,7 +412,7 @@ def main():
     key = Key(key_sig, mode)
     
     # Create player and session
-    player = Player(speech_vol=args.speech_volume)
+    player = Player(speech_vol=args.speech_volume, chord_vol=args.chord_volume, melody_vol=args.melody_volume)
     session = ProgressionSession(player, key, args.progression, args.only_harmony)
     
     # Run
