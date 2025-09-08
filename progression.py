@@ -347,6 +347,8 @@ def main():
                        help='Volume for speech (0-100, default: 70)')
     parser.add_argument('--only-harmony', action='store_true',
                        help='Play only the chord progression without melody and labels')
+    parser.add_argument('--key', type=str, default=None,
+                       help='Key to use (e.g., C, G, Dm, Am). If not specified, random key is chosen')
     
     args = parser.parse_args()
     
@@ -356,8 +358,50 @@ def main():
     BEAT_DURATION = 60.0 / TEMPO
     CHORD_DURATION = 4 * BEAT_DURATION
     
-    # Random key
-    key_sig = random.choice(KEY_SIGS)
+    # Select key
+    if args.key:
+        # Parse the key argument
+        key_name = args.key.upper()
+        
+        # Map common key names to key signatures
+        key_map = {
+            'C': ['C','D','E','F','G','A','B'],
+            'G': ['G','A','B','C','D','E','F#'],
+            'D': ['D','E','F#','G','A','B','C#'],
+            'A': ['A','B','C#','D','E','F#','G#'],
+            'E': ['E','F#','G#','A','B','C#','D#'],
+            'B': ['B','C#','D#','E','F#','G#','A#'],
+            'F': ['F','G','A','Bb','C','D','E'],
+            'BB': ['Bb','C','D','Eb','F','G','A'],
+            'EB': ['Eb','F','G','Ab','Bb','C','D'],
+            'AB': ['Ab','Bb','C','Db','Eb','F','G'],
+            'DB': ['Db','Eb','F','Gb','Ab','Bb','C'],
+            'GB': ['Gb','Ab','Bb','Cb','Db','Eb','F'],
+            'F#': ['F#','G#','A#','B','C#','D#','E#'],
+            # Minor keys (relative major signatures)
+            'AM': ['C','D','E','F','G','A','B'],  # A minor = C major
+            'EM': ['G','A','B','C','D','E','F#'],  # E minor = G major
+            'BM': ['D','E','F#','G','A','B','C#'],  # B minor = D major
+            'F#M': ['A','B','C#','D','E','F#','G#'],  # F# minor = A major
+            'C#M': ['E','F#','G#','A','B','C#','D#'],  # C# minor = E major
+            'G#M': ['B','C#','D#','E','F#','G#','A#'],  # G# minor = B major
+            'DM': ['F','G','A','Bb','C','D','E'],  # D minor = F major
+            'GM': ['Bb','C','D','Eb','F','G','A'],  # G minor = Bb major
+            'CM': ['Eb','F','G','Ab','Bb','C','D'],  # C minor = Eb major
+            'FM': ['Ab','Bb','C','Db','Eb','F','G'],  # F minor = Ab major
+            'BBM': ['Db','Eb','F','Gb','Ab','Bb','C'],  # Bb minor = Db major
+            'EBM': ['Gb','Ab','Bb','Cb','Db','Eb','F'],  # Eb minor = Gb major
+        }
+        
+        if key_name in key_map:
+            key_sig = key_map[key_name]
+        else:
+            print(f"Warning: Unknown key '{args.key}', using random key instead")
+            key_sig = random.choice(KEY_SIGS)
+    else:
+        # Random key
+        key_sig = random.choice(KEY_SIGS)
+    
     mode = PROGRESSIONS[args.progression]['mode']
     key = Key(key_sig, mode)
     
