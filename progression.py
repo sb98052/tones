@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse, random, time, subprocess, sys
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Sequence, Dict, List, Tuple
+from typing import Sequence, Dict, List, Tuple, Set
 import pygame
 
 # ── CONFIG ──────────────────────────────────────────────────────────
@@ -163,18 +163,31 @@ class Player:
             return
         
         # Save current volume
-        result = subprocess.run(["osascript", "-e", "output volume of (get volume settings)"], 
-                              capture_output=True, text=True, check=True)
-        saved_vol = int(result.stdout.strip())
+        try:
+            result = subprocess.run(["osascript", "-e", "output volume of (get volume settings)"], 
+                                  capture_output=True, text=True, check=True)
+            output = result.stdout.strip()
+            if output == "missing value" or not output:
+                saved_vol = 50  # Default to middle volume if can't get current
+            else:
+                saved_vol = int(output)
+        except (ValueError, subprocess.CalledProcessError):
+            saved_vol = 50  # Default fallback
         
         # Set speech volume
-        subprocess.run(["osascript", "-e", f"set volume output volume {self.speech_vol}"], check=True)
+        try:
+            subprocess.run(["osascript", "-e", f"set volume output volume {self.speech_vol}"], check=True)
+        except subprocess.CalledProcessError:
+            pass  # Continue even if we can't set volume
         
         # Blocking call
         subprocess.run(["say", text], check=True)
         
         # Restore volume
-        subprocess.run(["osascript", "-e", f"set volume output volume {saved_vol}"], check=True)
+        try:
+            subprocess.run(["osascript", "-e", f"set volume output volume {saved_vol}"], check=True)
+        except subprocess.CalledProcessError:
+            pass  # Don't fail if we can't restore volume
     
     def play_chord_and_melody(self, chord_notes: List[str], melody_note: str, duration: float):
         """Play chord with melody note on top - returns channels to stop later"""
@@ -228,6 +241,29 @@ class ProgressionSession:
         self.progression = PROGRESSIONS[progression_name]
         self.chord_sequence = self.progression['chords']
         self.only_harmony = only_harmony
+        self.label_ambiguities = self._analyze_label_ambiguities()
+    
+    def _analyze_label_ambiguities(self) -> Dict[str, set]:
+        """Analyze which harmonic labels appear with multiple chord qualities"""
+        label_to_qualities = {}
+        
+        # Go through all chords in the progression
+        for chord_name in set(self.chord_sequence):  # Use set to avoid duplicates
+            chord_def = CHORD_DEFS[chord_name]
+            degrees = chord_def['degrees']
+            quality = chord_def['quality']
+            
+            # For each degree in the chord
+            for i, degree in enumerate(degrees):
+                position = ['1', '3', '5', '7'][i] if i < 4 else '1'
+                label_key = f"{degree}_{position}"
+                
+                if label_key not in label_to_qualities:
+                    label_to_qualities[label_key] = set()
+                label_to_qualities[label_key].add(quality)
+        
+        # Return dict indicating which labels have multiple qualities
+        return {k: v for k, v in label_to_qualities.items() if len(v) > 1}
     
     def get_chord_notes(self, chord_name: str) -> Tuple[List[str], List[str]]:
         """Get actual notes for a chord in the current key"""
@@ -258,7 +294,15 @@ class ProgressionSession:
         
         # Create label with proper pronunciation
         degree_pronunciation = SOLFEGE_PRONUNCIATION.get(chosen_degree, chosen_degree)
-        label = f"{degree_pronunciation}, {position}, {quality}"
+        
+        # Check if this label needs the quality qualifier
+        label_key = f"{chosen_degree}_{position}"
+        if label_key in self.label_ambiguities:
+            # This label appears with multiple qualities, so include the quality
+            label = f"{degree_pronunciation}, {position}, {quality}"
+        else:
+            # This label is unique, skip the quality
+            label = f"{degree_pronunciation}, {position}"
         
         return melody_note, label
     
@@ -351,8 +395,8 @@ def main():
                        help='Play only the chord progression without melody and labels')
     parser.add_argument('--key', type=str, default=None,
                        help='Key to use (e.g., C, G, Dm, Am). If not specified, random key is chosen')
-    parser.add_argument('--chord-volume', type=float, default=0.15,
-                       help='Volume for chord notes (0.0-1.0, default: 0.15)')
+    parser.add_argument('--chord-volume', type=float, default=0.07,
+                       help='Volume for chord notes (0.0-1.0, default: 0.07)')
     parser.add_argument('--melody-volume', type=float, default=1.0,
                        help='Volume for melody notes (0.0-1.0, default: 1.0)')
     
