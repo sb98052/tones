@@ -328,6 +328,39 @@ class ProgressionSession:
         # Clean up to prevent channel buildup
         pygame.mixer.stop()
     
+    def play_scale(self):
+        """Play the scale based on the mode (minor starts with La, major starts with Do)"""
+        scale_notes = []
+
+        if self.key.mode == 'minor':
+            # Natural minor scale starting from La
+            scale_degrees = ['la', 'ti', 'do', 're', 'mi', 'fa', 'sol', 'la']
+        else:
+            # Major scale starting from Do
+            scale_degrees = ['do', 're', 'mi', 'fa', 'sol', 'la', 'ti', 'do']
+
+        # Convert to actual notes
+        octave = 4  # Middle octave for scale
+        for i, degree in enumerate(scale_degrees[:-1]):  # Skip the last note for now
+            note = self.key.solfege_to_note(degree, octave)
+            scale_notes.append(note)
+
+        # Add the octave (last note one octave higher)
+        last_note = self.key.solfege_to_note(scale_degrees[-1], octave + 1)
+        scale_notes.append(last_note)
+
+        print(f"Playing {self.key.mode} scale...")
+
+        # Play each note of the scale
+        for note in scale_notes:
+            ch = self.player._snd(note).play(loops=0)
+            if ch:
+                ch.set_volume(self.player.vol * self.player.melody_vol)
+            time.sleep(0.4)  # Duration for each scale note
+
+        time.sleep(0.5)  # Pause after scale
+        pygame.mixer.stop()  # Clear channels
+
     def run(self):
         """Run the progression loop"""
         print(f"\nStarting progression: {self.progression}")
@@ -335,6 +368,9 @@ class ProgressionSession:
         if self.only_harmony:
             print("Mode: Harmony only")
         print("Press Ctrl+C to stop\n")
+
+        # Play the scale to establish the key
+        self.play_scale()
         
         try:
             while True:
