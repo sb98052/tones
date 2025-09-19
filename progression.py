@@ -79,7 +79,7 @@ CHORD_DEFS = {
 # ── PROGRESSIONS ────────────────────────────────────────────────────
 PROGRESSIONS = {
     'dark_eyes': {
-        'chords': ['mi7_dominant', 'la_minor_dm', 'mi7_dominant', 'fa_major_bb', 
+        'chords': ['mi7_dominant', 'la_minor_dm', 'mi7_dominant', 'fa_major_bb',
                    're_minor_gm', 'la_minor_dm', 'mi7_dominant', 'la_minor_dm'],
         'mode': 'minor'  # Natural minor (La-based)
     },
@@ -89,6 +89,10 @@ PROGRESSIONS = {
                    're_minor', 're_minor', 'la_minor', 'la_minor',
                    'mi_dominant', 'mi_dominant', 'la_minor', 'mi_dominant'],
         'mode': 'minor'
+    },
+    'superpop': {
+        'chords': ['do_major', 'sol_major', 'la_minor', 'fa_major'],
+        'mode': 'major'  # Major mode (Do-based)
     }
 }
 
