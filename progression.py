@@ -74,6 +74,14 @@ CHORD_DEFS = {
     'la_minor_dm': {'degrees': ['la', 'do', 'mi'], 'quality': 'minor'},  # Dm
     're_minor_gm': {'degrees': ['re', 'fa', 'la'], 'quality': 'minor'},  # Gm in Dm
     'fa_major_bb': {'degrees': ['fa', 'la', 'do'], 'quality': 'major'},  # Bb in Dm
+
+    # Additional dominant 7th chords for All of Me
+    'la7_dominant': {'degrees': ['la', 'di', 'mi', 'sol'], 'quality': 'dominant'},  # A7
+    're7_dominant': {'degrees': ['re', 'fi', 'la', 'do'], 'quality': 'dominant'},  # D7
+    'sol7_dominant': {'degrees': ['sol', 'ti', 're', 'fa'], 'quality': 'dominant'},  # G7
+
+    # Additional minor chord
+    'fa_minor': {'degrees': ['fa', 'le', 'do'], 'quality': 'minor'},  # Fm
 }
 
 # ── PROGRESSIONS ────────────────────────────────────────────────────
@@ -92,6 +100,17 @@ PROGRESSIONS = {
     },
     'superpop': {
         'chords': ['do_major', 'sol_major', 'la_minor', 'fa_major'],
+        'mode': 'major'  # Major mode (Do-based)
+    },
+    'all_of_me': {
+        'chords': ['do_major', 'do_major', 'mi7_dominant', 'mi7_dominant',
+                   'la7_dominant', 'la7_dominant', 're_minor', 're_minor',
+                   'mi7_dominant', 'mi7_dominant', 'la_minor', 'la_minor',
+                   're7_dominant', 're7_dominant', 'sol7_dominant', 'sol7_dominant',
+                   'do_major', 'do_major', 'mi7_dominant', 'mi7_dominant',
+                   'la7_dominant', 'la7_dominant', 're_minor', 're_minor',
+                   'fa_major', 'fa_minor', 'do_major', 'la7_dominant',
+                   're_minor', 'sol7_dominant', 'do_major', 'sol7_dominant'],
         'mode': 'major'  # Major mode (Do-based)
     }
 }
