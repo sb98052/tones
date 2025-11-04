@@ -93,7 +93,7 @@ PROGRESSIONS = {
     },
     'minor_swing': {
         'chords': ['la_minor', 'la_minor', 're_minor', 're_minor',
-                   'la_minor', 'la_minor', 'mi_dominant', 'mi_dominant',
+                   'mi_dominant', 'mi_dominant', 'la_minor', 'la_minor', 
                    're_minor', 're_minor', 'la_minor', 'la_minor',
                    'mi_dominant', 'mi_dominant', 'la_minor', 'mi_dominant'],
         'mode': 'minor'
@@ -259,13 +259,14 @@ class Player:
 
 # ── PROGRESSION PLAYER ──────────────────────────────────────────────
 class ProgressionSession:
-    def __init__(self, player: Player, key: Key, progression_name: str, only_harmony: bool = False, chord_octaves: Tuple[int, int] = CHORD_OCTAVE_RANGE):
+    def __init__(self, player: Player, key: Key, progression_name: str, only_harmony: bool = False, chord_octaves: Tuple[int, int] = CHORD_OCTAVE_RANGE, no_voice: bool = False):
         self.player = player
         self.key = key
         self.progression = PROGRESSIONS[progression_name]
         self.chord_sequence = self.progression['chords']
         self.only_harmony = only_harmony
         self.chord_octaves = chord_octaves
+        self.no_voice = no_voice
         self.label_ambiguities = self._analyze_label_ambiguities()
     
     def _analyze_label_ambiguities(self) -> Dict[str, set]:
@@ -390,6 +391,8 @@ class ProgressionSession:
         print(f"Key: {self.key.sig[0] if self.key.mode == 'major' else self.key.sig[5]} {self.key.mode}")
         if self.only_harmony:
             print("Mode: Harmony only")
+        elif self.no_voice:
+            print("Mode: No voice (harmony and melody only)")
         print("Press Ctrl+C to stop\n")
 
         # Play the scale to establish the key
@@ -414,22 +417,27 @@ class ProgressionSession:
                         chord_melody_dur = CHORD_DURATION * 0.35
                         melody_only_dur = CHORD_DURATION * 0.25
                         # Remaining time for speech and pauses
-                        
+
                         # 1. Play chord + melody (keep chord ringing)
                         chord_channels, melody_ch = self.player.play_chord_and_melody(chord_notes, melody_note, chord_melody_dur)
-                        
+
                         # 2. Wait (chord still ringing)
                         time.sleep(WAIT_TIME)
-                        
-                        # 3. Say label (chord still ringing)
-                        self.player.say_label(label)
-                        
+
+                        # 3. Say label (chord still ringing) - print if no_voice flag is set
+                        if not self.no_voice:
+                            self.player.say_label(label)
+                        else:
+                            # Print the label instead of speaking it
+                            print(f"  >>> {label}")
+                            time.sleep(0.5)  # Brief pause for readability
+
                         # 4. Wait (chord still ringing)
                         time.sleep(WAIT_TIME)
-                        
+
                         # 5. Play melody only
                         melody_ch2 = self.player.play_melody_only(melody_note, melody_only_dur)
-                        
+
                         # 6. Wait after melody
                         time.sleep(WAIT_TIME)
                         
@@ -471,7 +479,9 @@ def main():
                        help='Volume for melody notes (0.0-1.0, default: 1.0)')
     parser.add_argument('--chord-octaves', type=str, default='3,4',
                        help='Octaves for chord notes (e.g., "3,4" for 3rd and 4th octaves)')
-    
+    parser.add_argument('--no-voice', action='store_true',
+                       help='Skip voice-based instructions, only play harmony and melody')
+
     args = parser.parse_args()
     
     # Update tempo
@@ -535,8 +545,8 @@ def main():
     
     # Create player and session
     player = Player(speech_vol=args.speech_volume, chord_vol=args.chord_volume, melody_vol=args.melody_volume)
-    session = ProgressionSession(player, key, args.progression, args.only_harmony, chord_octaves)
-    
+    session = ProgressionSession(player, key, args.progression, args.only_harmony, chord_octaves, args.no_voice)
+
     # Run
     session.run()
 
