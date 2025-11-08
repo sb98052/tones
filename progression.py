@@ -7,7 +7,7 @@ Chord Progression Ear Training with Harmonic Labeling
 """
 
 from __future__ import annotations
-import argparse, random, time, subprocess, sys
+import argparse, random, time, subprocess, sys, threading, select, fcntl, os
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Sequence, Dict, List, Tuple, Set
@@ -166,6 +166,82 @@ class Key:
         
         return f"C{octave}"  # Default fallback
 
+# ── KEYBOARD INPUT ──────────────────────────────────────────────────
+class KeyboardListener:
+    """Non-blocking keyboard input listener for pause/resume functionality"""
+    def __init__(self):
+        self.paused = False
+        self.stop_requested = False
+        self._lock = threading.Lock()
+        self._thread = None
+
+    def start(self):
+        """Start listening for keyboard input in a separate thread"""
+        self._thread = threading.Thread(target=self._listen, daemon=True)
+        self._thread.start()
+
+    def _listen(self):
+        """Listen for keyboard input (runs in separate thread)"""
+        import termios, tty
+
+        # Save terminal settings
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        old_flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+
+        try:
+            # Set terminal to cbreak mode (not raw mode) for better output handling
+            tty.setcbreak(fd)
+            # Set non-blocking mode
+            fcntl.fcntl(fd, fcntl.F_SETFL, old_flags | os.O_NONBLOCK)
+
+            while not self.stop_requested:
+                try:
+                    # Try to read a character (non-blocking)
+                    key = sys.stdin.read(1)
+
+                    if key:
+                        # Space key to toggle pause
+                        if key == ' ':
+                            with self._lock:
+                                self.paused = not self.paused
+                                if self.paused:
+                                    print("\n>>> PAUSED (press space to resume) <<<\n", flush=True)
+                                else:
+                                    print("\n>>> RESUMED <<<\n", flush=True)
+
+                        # 'q' or ESC to quit
+                        elif key in ['q', 'Q', '\x1b', '\x03']:  # q, Q, ESC, or Ctrl+C
+                            with self._lock:
+                                self.stop_requested = True
+
+                except IOError:
+                    # No input available, continue
+                    pass
+
+                # Small sleep to prevent CPU spinning
+                time.sleep(0.05)
+
+        finally:
+            # Restore terminal settings
+            fcntl.fcntl(fd, fcntl.F_SETFL, old_flags)
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+    def is_paused(self):
+        """Check if currently paused"""
+        with self._lock:
+            return self.paused
+
+    def should_stop(self):
+        """Check if stop was requested"""
+        with self._lock:
+            return self.stop_requested
+
+    def stop(self):
+        """Stop the listener thread"""
+        with self._lock:
+            self.stop_requested = True
+
 # ── AUDIO & SPEECH ──────────────────────────────────────────────────
 class Player:
     def __init__(self, folder=SOUND_FOLDER, vol=5.0, chans=32, speech_vol=0.7, chord_vol=0.15, melody_vol=1.0):
@@ -213,10 +289,10 @@ class Player:
         except subprocess.CalledProcessError:
             pass  # Don't fail if we can't restore volume
     
-    def play_chord_and_melody(self, chord_notes: List[str], melody_note: str, duration: float):
+    def play_chord_and_melody(self, chord_notes: List[str], melody_note: str, duration: float, session=None):
         """Play chord with melody note on top - returns channels to stop later"""
         print(f"  Chord: {chord_notes}, Melody: {melody_note}")
-        
+
         # Play chord
         chord_channels = []
         for note in chord_notes:
@@ -226,7 +302,7 @@ class Player:
                 chord_channels.append(ch)
             else:
                 print(f"Warning: Could not play chord note {note}")
-        
+
         # Play melody note (full volume) - find available channel
         melody_ch = pygame.mixer.find_channel(True)  # Force get a channel
         if melody_ch:
@@ -236,9 +312,9 @@ class Player:
         else:
             print(f"Warning: No channel available for melody {melody_note}")
             melody_ch = None
-        
-        time.sleep(duration)
-        
+
+        # Note: duration is now handled by the session's wait_with_pause method
+
         # Return channels so they can be stopped later
         return chord_channels, melody_ch
     
@@ -248,7 +324,7 @@ class Player:
         ch = self._snd(melody_note).play(loops=0)
         if ch:
             ch.set_volume(self.vol * self.melody_vol)  # Configurable melody volume
-        time.sleep(duration)
+        # Note: duration is now handled by the session's wait_with_pause method
         # Let the note ring out naturally, don't stop it
         return ch
     
@@ -268,6 +344,7 @@ class ProgressionSession:
         self.chord_octaves = chord_octaves
         self.no_voice = no_voice
         self.label_ambiguities = self._analyze_label_ambiguities()
+        self.keyboard_listener = KeyboardListener()
     
     def _analyze_label_ambiguities(self) -> Dict[str, set]:
         """Analyze which harmonic labels appear with multiple chord qualities"""
@@ -304,23 +381,43 @@ class ProgressionSession:
         
         return chord_notes, degrees
     
+    def wait_with_pause(self, duration: float):
+        """Wait for a duration while checking for pause/resume"""
+        start_time = time.time()
+        while time.time() - start_time < duration:
+            if self.keyboard_listener.should_stop():
+                return False  # Signal to stop
+
+            if self.keyboard_listener.is_paused():
+                # Pause all sounds
+                pygame.mixer.pause()
+                while self.keyboard_listener.is_paused():
+                    time.sleep(0.1)
+                    if self.keyboard_listener.should_stop():
+                        return False
+                # Resume all sounds
+                pygame.mixer.unpause()
+
+            time.sleep(0.05)  # Check every 50ms
+        return True  # Continue normally
+
     def get_random_melody_note(self, chord_name: str) -> Tuple[str, str]:
         """Pick a random chord tone as melody"""
         chord_def = CHORD_DEFS[chord_name]
         degrees = chord_def['degrees']
         quality = chord_def['quality']
-        
+
         # Pick random chord tone
         chosen_degree = random.choice(degrees)
         melody_note = self.key.solfege_to_note(chosen_degree, random.choice(MELODY_OCTAVE_RANGE))
-        
+
         # Determine position (1, 3, 5, or 7)
         position_map = {0: '1', 1: '3', 2: '5', 3: '7'}
         position = position_map.get(degrees.index(chosen_degree), '1')
-        
+
         # Create label with proper pronunciation
         degree_pronunciation = SOLFEGE_PRONUNCIATION.get(chosen_degree, chosen_degree)
-        
+
         # Check if this label needs the quality qualifier
         label_key = f"{chosen_degree}_{position}"
         if label_key in self.label_ambiguities:
@@ -329,7 +426,7 @@ class ProgressionSession:
         else:
             # This label is unique, skip the quality
             label = f"{degree_pronunciation}, {position}"
-        
+
         return melody_note, label
     
     def play_chord_only(self, chord_notes: List[str], duration: float):
@@ -393,16 +490,22 @@ class ProgressionSession:
             print("Mode: Harmony only")
         elif self.no_voice:
             print("Mode: No voice (harmony and melody only)")
-        print("Press Ctrl+C to stop\n")
+        print("Controls: [Space] = Pause/Resume | [Q] or [Ctrl+C] = Quit\n")
+
+        # Start keyboard listener
+        self.keyboard_listener.start()
 
         # Play the scale to establish the key
         self.play_scale()
         
         try:
-            while True:
+            while not self.keyboard_listener.should_stop():
                 for chord_name in self.chord_sequence:
+                    if self.keyboard_listener.should_stop():
+                        break
+
                     print(f"Chord: {chord_name}")
-                    
+
                     # Get chord notes
                     chord_notes, degrees = self.get_chord_notes(chord_name)
                     
@@ -421,8 +524,13 @@ class ProgressionSession:
                         # 1. Play chord + melody (keep chord ringing)
                         chord_channels, melody_ch = self.player.play_chord_and_melody(chord_notes, melody_note, chord_melody_dur)
 
+                        # Check for pause during chord play
+                        if not self.wait_with_pause(chord_melody_dur):
+                            break
+
                         # 2. Wait (chord still ringing)
-                        time.sleep(WAIT_TIME)
+                        if not self.wait_with_pause(WAIT_TIME):
+                            break
 
                         # 3. Say label (chord still ringing) - print if no_voice flag is set
                         if not self.no_voice:
@@ -430,16 +538,23 @@ class ProgressionSession:
                         else:
                             # Print the label instead of speaking it
                             print(f"  >>> {label}")
-                            time.sleep(0.5)  # Brief pause for readability
+                            if not self.wait_with_pause(0.5):  # Brief pause for readability
+                                break
 
                         # 4. Wait (chord still ringing)
-                        time.sleep(WAIT_TIME)
+                        if not self.wait_with_pause(WAIT_TIME):
+                            break
 
                         # 5. Play melody only
                         melody_ch2 = self.player.play_melody_only(melody_note, melody_only_dur)
 
+                        # Check for pause during melody play
+                        if not self.wait_with_pause(melody_only_dur):
+                            break
+
                         # 6. Wait after melody
-                        time.sleep(WAIT_TIME)
+                        if not self.wait_with_pause(WAIT_TIME):
+                            break
                         
                         # 7. Stop the chord channels after everything is done
                         for ch in chord_channels:
@@ -455,8 +570,10 @@ class ProgressionSession:
                     
                     print()
         
-        except KeyboardInterrupt:
-            print("\nStopping progression...")
+        except (KeyboardInterrupt, Exception) as e:
+            if isinstance(e, KeyboardInterrupt):
+                print("\nStopping progression...")
+            self.keyboard_listener.stop()
             pygame.mixer.stop()
             pygame.quit()
 
