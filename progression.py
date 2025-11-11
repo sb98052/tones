@@ -82,6 +82,12 @@ CHORD_DEFS = {
 
     # Additional minor chord
     'fa_minor': {'degrees': ['fa', 'le', 'do'], 'quality': 'minor'},  # Fm
+
+    # Chords for Autumn Leaves
+    're_minor7': {'degrees': ['re', 'fa', 'la', 'do'], 'quality': 'minor7'},  # Dm7
+    'sol7_dominant': {'degrees': ['sol', 'ti', 're', 'fa'], 'quality': 'dominant'},  # G7 (already exists as sol7_dominant)
+    'do_major7': {'degrees': ['do', 'mi', 'sol', 'ti'], 'quality': 'major7'},  # Cmaj7
+    'fa_major7': {'degrees': ['fa', 'la', 'do', 'mi'], 'quality': 'major7'},  # Fmaj7
 }
 
 # ── PROGRESSIONS ────────────────────────────────────────────────────
@@ -112,6 +118,11 @@ PROGRESSIONS = {
                    'fa_major', 'fa_minor', 'do_major', 'la7_dominant',
                    're_minor', 'sol7_dominant', 'do_major', 'sol7_dominant'],
         'mode': 'major'  # Major mode (Do-based)
+    },
+    'autumn_leaves_start': {
+        'chords': ['re_minor7', 'sol7_dominant', 'do_major7', 'fa_major7',
+                   're_minor7', 'sol7_dominant', 'do_major7', 'fa_major7'],
+        'mode': 'major'  # Major mode (Do-based) - starts on ii-V-I in C major
     }
 }
 
@@ -335,7 +346,7 @@ class Player:
 
 # ── PROGRESSION PLAYER ──────────────────────────────────────────────
 class ProgressionSession:
-    def __init__(self, player: Player, key: Key, progression_name: str, only_harmony: bool = False, chord_octaves: Tuple[int, int] = CHORD_OCTAVE_RANGE, no_voice: bool = False):
+    def __init__(self, player: Player, key: Key, progression_name: str, only_harmony: bool = False, chord_octaves: Tuple[int, int] = CHORD_OCTAVE_RANGE, no_voice: bool = False, audiate: bool = False):
         self.player = player
         self.key = key
         self.progression = PROGRESSIONS[progression_name]
@@ -343,6 +354,7 @@ class ProgressionSession:
         self.only_harmony = only_harmony
         self.chord_octaves = chord_octaves
         self.no_voice = no_voice
+        self.audiate = audiate
         self.label_ambiguities = self._analyze_label_ambiguities()
         self.keyboard_listener = KeyboardListener()
     
@@ -490,6 +502,8 @@ class ProgressionSession:
             print("Mode: Harmony only")
         elif self.no_voice:
             print("Mode: No voice (harmony and melody only)")
+        elif self.audiate:
+            print("Mode: Audiation (announce first, then play)")
         print("Controls: [Space] = Pause/Resume | [Q] or [Ctrl+C] = Quit\n")
 
         # Start keyboard listener
@@ -515,46 +529,90 @@ class ProgressionSession:
                     else:
                         # Full training mode with melody and labels
                         melody_note, label = self.get_random_melody_note(chord_name)
-                        
+
                         # Timing breakdown (total = CHORD_DURATION)
                         chord_melody_dur = CHORD_DURATION * 0.35
                         melody_only_dur = CHORD_DURATION * 0.25
                         # Remaining time for speech and pauses
 
-                        # 1. Play chord + melody (keep chord ringing)
-                        chord_channels, melody_ch = self.player.play_chord_and_melody(chord_notes, melody_note, chord_melody_dur)
+                        if self.audiate:
+                            # Audiation mode: announce first, then play melody alone, then with chord
 
-                        # Check for pause during chord play
-                        if not self.wait_with_pause(chord_melody_dur):
-                            break
+                            # 1. Say/print label FIRST
+                            if not self.no_voice:
+                                self.player.say_label(label)
+                            else:
+                                # Print the label instead of speaking it
+                                print(f"  >>> {label}")
+                                if not self.wait_with_pause(0.5):  # Brief pause for readability
+                                    break
 
-                        # 2. Wait (chord still ringing)
-                        if not self.wait_with_pause(WAIT_TIME):
-                            break
-
-                        # 3. Say label (chord still ringing) - print if no_voice flag is set
-                        if not self.no_voice:
-                            self.player.say_label(label)
-                        else:
-                            # Print the label instead of speaking it
-                            print(f"  >>> {label}")
-                            if not self.wait_with_pause(0.5):  # Brief pause for readability
+                            # 2. Wait (time for anticipation/audiation)
+                            if not self.wait_with_pause(WAIT_TIME):
                                 break
 
-                        # 4. Wait (chord still ringing)
-                        if not self.wait_with_pause(WAIT_TIME):
-                            break
+                            # 3. Play melody only FIRST
+                            melody_ch1 = self.player.play_melody_only(melody_note, melody_only_dur)
 
-                        # 5. Play melody only
-                        melody_ch2 = self.player.play_melody_only(melody_note, melody_only_dur)
+                            # Check for pause during melody play
+                            if not self.wait_with_pause(melody_only_dur):
+                                break
 
-                        # Check for pause during melody play
-                        if not self.wait_with_pause(melody_only_dur):
-                            break
+                            # 4. Wait
+                            if not self.wait_with_pause(WAIT_TIME):
+                                break
 
-                        # 6. Wait after melody
-                        if not self.wait_with_pause(WAIT_TIME):
-                            break
+                            # 5. Play chord + melody together
+                            chord_channels, melody_ch = self.player.play_chord_and_melody(chord_notes, melody_note, chord_melody_dur)
+
+                            # Check for pause during chord play
+                            if not self.wait_with_pause(chord_melody_dur):
+                                break
+
+                            # 6. Wait after chord+melody
+                            if not self.wait_with_pause(WAIT_TIME):
+                                break
+
+                            # Store melody channel for cleanup
+                            melody_ch2 = melody_ch1
+
+                        else:
+                            # Standard recognition mode: play first, then announce
+
+                            # 1. Play chord + melody (keep chord ringing)
+                            chord_channels, melody_ch = self.player.play_chord_and_melody(chord_notes, melody_note, chord_melody_dur)
+
+                            # Check for pause during chord play
+                            if not self.wait_with_pause(chord_melody_dur):
+                                break
+
+                            # 2. Wait (chord still ringing)
+                            if not self.wait_with_pause(WAIT_TIME):
+                                break
+
+                            # 3. Say label (chord still ringing) - print if no_voice flag is set
+                            if not self.no_voice:
+                                self.player.say_label(label)
+                            else:
+                                # Print the label instead of speaking it
+                                print(f"  >>> {label}")
+                                if not self.wait_with_pause(0.5):  # Brief pause for readability
+                                    break
+
+                            # 4. Wait (chord still ringing)
+                            if not self.wait_with_pause(WAIT_TIME):
+                                break
+
+                            # 5. Play melody only
+                            melody_ch2 = self.player.play_melody_only(melody_note, melody_only_dur)
+
+                            # Check for pause during melody play
+                            if not self.wait_with_pause(melody_only_dur):
+                                break
+
+                            # 6. Wait after melody
+                            if not self.wait_with_pause(WAIT_TIME):
+                                break
                         
                         # 7. Stop the chord channels after everything is done
                         for ch in chord_channels:
@@ -584,8 +642,8 @@ def main():
                        default='minor_swing', help='Progression to practice')
     parser.add_argument('--tempo', type=int, default=120,
                        help='Tempo in BPM (default: 120)')
-    parser.add_argument('--speech-volume', type=float, default=0.7,
-                       help='Volume for speech (0.0-1.0, default: 0.7)')
+    parser.add_argument('--speech-volume', type=float, default=0.3,
+                       help='Volume for speech (0.0-1.0, default: 0.3)')
     parser.add_argument('--only-harmony', action='store_true',
                        help='Play only the chord progression without melody and labels')
     parser.add_argument('--key', type=str, default=None,
@@ -598,6 +656,8 @@ def main():
                        help='Octaves for chord notes (e.g., "3,4" for 3rd and 4th octaves)')
     parser.add_argument('--no-voice', action='store_true',
                        help='Skip voice-based instructions, only play harmony and melody')
+    parser.add_argument('--audiate', action='store_true',
+                       help='Audiation mode: announce the note first, then play it (for anticipation practice)')
 
     args = parser.parse_args()
     
@@ -662,7 +722,7 @@ def main():
     
     # Create player and session
     player = Player(speech_vol=args.speech_volume, chord_vol=args.chord_volume, melody_vol=args.melody_volume)
-    session = ProgressionSession(player, key, args.progression, args.only_harmony, chord_octaves, args.no_voice)
+    session = ProgressionSession(player, key, args.progression, args.only_harmony, chord_octaves, args.no_voice, args.audiate)
 
     # Run
     session.run()
