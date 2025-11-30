@@ -108,6 +108,10 @@ PROGRESSIONS = {
         'chords': ['do_major', 'sol_major', 'la_minor', 'fa_major'],
         'mode': 'major'  # Major mode (Do-based)
     },
+    'primary': {
+        'chords': ['do_major', 'fa_major', 'la_minor', 're_minor', 'sol_major', 'do_major'],
+        'mode': 'major'  # Major mode (Do-based)
+    },
     'all_of_me': {
         'chords': ['do_major', 'do_major', 'mi7_dominant', 'mi7_dominant',
                    'la7_dominant', 'la7_dominant', 're_minor', 're_minor',
