@@ -112,6 +112,10 @@ PROGRESSIONS = {
         'chords': ['do_major', 'fa_major', 'la_minor', 're_minor', 'sol_major', 'do_major'],
         'mode': 'major'  # Major mode (Do-based)
     },
+    'primary_minor': {
+        'chords': ['la_minor', 're_minor', 'sol_major', 'do_major', 'mi_dominant', 'la_minor'],
+        'mode': 'minor'  # Minor mode (La-based) - uses 5 diatonic chords: i, iv, VII, III, V7, i
+    },
     'all_of_me': {
         'chords': ['do_major', 'do_major', 'mi7_dominant', 'mi7_dominant',
                    'la7_dominant', 'la7_dominant', 're_minor', 're_minor',
