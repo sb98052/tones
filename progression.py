@@ -264,6 +264,14 @@ class KeyboardListener:
 # ── AUDIO & SPEECH ──────────────────────────────────────────────────
 class Player:
     def __init__(self, folder=SOUND_FOLDER, vol=5.0, chans=32, speech_vol=0.7, chord_vol=0.15, melody_vol=1.0):
+        # Initialize with better audio settings for macOS
+        pygame.mixer.quit()  # Ensure clean state
+        pygame.mixer.pre_init(
+            frequency=44100,     # Standard CD quality
+            size=-16,           # 16-bit signed samples
+            channels=2,         # Stereo
+            buffer=512          # Smaller buffer for lower latency
+        )
         pygame.mixer.init()
         pygame.mixer.set_num_channels(chans)
         self.folder = folder
@@ -271,7 +279,37 @@ class Player:
         self.speech_vol = speech_vol  # 0.0-1.0 scale (converted to 0-100 for macOS)
         self.chord_vol = chord_vol  # Volume multiplier for chord notes
         self.melody_vol = melody_vol  # Volume multiplier for melody notes
+        self.last_init_time = time.time()
     
+    def _check_mixer(self):
+        """Check if mixer is working and reinitialize if needed"""
+        try:
+            # Check if mixer is initialized
+            if not pygame.mixer.get_init():
+                print("Warning: Mixer not initialized, reinitializing...")
+                pygame.mixer.init()
+                pygame.mixer.set_num_channels(32)
+                return False
+
+            # Check if we can get a channel
+            test_channel = pygame.mixer.find_channel()
+            if not test_channel:
+                print("Warning: No available channels, resetting mixer...")
+                pygame.mixer.stop()
+                pygame.mixer.set_num_channels(32)
+                return False
+
+            return True
+        except Exception as e:
+            print(f"Mixer check failed: {e}, reinitializing...")
+            try:
+                pygame.mixer.quit()
+                pygame.mixer.init()
+                pygame.mixer.set_num_channels(32)
+            except:
+                pass
+            return False
+
     def _snd(self, note):
         return pygame.mixer.Sound(str(self.folder / f"{note}.mp3"))
     
@@ -312,24 +350,41 @@ class Player:
         """Play chord with melody note on top - returns channels to stop later"""
         print(f"  Chord: {chord_notes}, Melody: {melody_note}")
 
+        # Check mixer health before playing
+        self._check_mixer()
+
         # Play chord
         chord_channels = []
         for note in chord_notes:
-            ch = self._snd(note).play(loops=0)
-            if ch:
-                ch.set_volume(self.vol * self.chord_vol)  # Configurable chord volume
-                chord_channels.append(ch)
-            else:
-                print(f"Warning: Could not play chord note {note}")
+            try:
+                sound = self._snd(note)
+                ch = sound.play(loops=0)
+                if ch:
+                    ch.set_volume(self.vol * self.chord_vol)  # Configurable chord volume
+                    chord_channels.append(ch)
+                else:
+                    print(f"Warning: Could not play chord note {note}")
+                    # Try to recover
+                    self._check_mixer()
+            except Exception as e:
+                print(f"Error playing chord note {note}: {e}")
+                self._check_mixer()
 
         # Play melody note (full volume) - find available channel
-        melody_ch = pygame.mixer.find_channel(True)  # Force get a channel
-        if melody_ch:
-            melody_sound = self._snd(melody_note)
-            melody_ch.play(melody_sound)
-            melody_ch.set_volume(self.vol * self.melody_vol)  # Configurable melody volume
-        else:
-            print(f"Warning: No channel available for melody {melody_note}")
+        try:
+            melody_ch = pygame.mixer.find_channel(True)  # Force get a channel
+            if melody_ch:
+                melody_sound = self._snd(melody_note)
+                melody_ch.play(melody_sound)
+                melody_ch.set_volume(self.vol * self.melody_vol)  # Configurable melody volume
+            else:
+                print(f"Warning: No channel available for melody {melody_note}")
+                melody_ch = None
+                # Try to recover
+                self._check_mixer()
+        except Exception as e:
+            print(f"Error playing melody {melody_note}: {e}")
+            self._check_mixer()
             melody_ch = None
 
         # Note: duration is now handled by the session's wait_with_pause method
@@ -340,9 +395,24 @@ class Player:
     def play_melody_only(self, melody_note: str, duration: float):
         """Play just the melody note"""
         print(f"  Melody only: {melody_note}")
-        ch = self._snd(melody_note).play(loops=0)
-        if ch:
-            ch.set_volume(self.vol * self.melody_vol)  # Configurable melody volume
+
+        # Check mixer health before playing
+        self._check_mixer()
+
+        try:
+            sound = self._snd(melody_note)
+            ch = sound.play(loops=0)
+            if ch:
+                ch.set_volume(self.vol * self.melody_vol)  # Configurable melody volume
+            else:
+                print(f"Warning: Could not play melody note {melody_note}")
+                # Try to recover
+                self._check_mixer()
+        except Exception as e:
+            print(f"Error playing melody {melody_note}: {e}")
+            self._check_mixer()
+            ch = None
+
         # Note: duration is now handled by the session's wait_with_pause method
         # Let the note ring out naturally, don't stop it
         return ch
