@@ -505,17 +505,9 @@ class ProgressionSession:
         position_map = {0: '1', 1: '3', 2: '5', 3: '7'}
         position = position_map.get(degrees.index(chosen_degree), '1')
 
-        # Create label with proper pronunciation
+        # Create label with proper pronunciation - always include quality
         degree_pronunciation = SOLFEGE_PRONUNCIATION.get(chosen_degree, chosen_degree)
-
-        # Check if this label needs the quality qualifier
-        label_key = f"{chosen_degree}_{position}"
-        if label_key in self.label_ambiguities:
-            # This label appears with multiple qualities, so include the quality
-            label = f"{degree_pronunciation}, {position}, {quality}"
-        else:
-            # This label is unique, skip the quality
-            label = f"{degree_pronunciation}, {position}"
+        label = f"{degree_pronunciation}, {position}, {quality}"
 
         return melody_note, label
     
