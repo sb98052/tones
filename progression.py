@@ -501,13 +501,13 @@ class ProgressionSession:
         chosen_degree = random.choice(degrees)
         melody_note = self.key.solfege_to_note(chosen_degree, random.choice(MELODY_OCTAVE_RANGE))
 
-        # Determine position (1, 3, 5, or 7)
-        position_map = {0: '1', 1: '3', 2: '5', 3: '7'}
-        position = position_map.get(degrees.index(chosen_degree), '1')
+        # Get root of the chord (first degree)
+        root_degree = degrees[0]
 
-        # Create label with proper pronunciation - always include quality
+        # Create label with proper pronunciation - "note over root, quality"
         degree_pronunciation = SOLFEGE_PRONUNCIATION.get(chosen_degree, chosen_degree)
-        label = f"{degree_pronunciation}, {position}, {quality}"
+        root_pronunciation = SOLFEGE_PRONUNCIATION.get(root_degree, root_degree)
+        label = f"{degree_pronunciation} over {root_pronunciation}, {quality}"
 
         return melody_note, label
     
