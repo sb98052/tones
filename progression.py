@@ -504,10 +504,11 @@ class ProgressionSession:
         # Get root of the chord (first degree)
         root_degree = degrees[0]
 
-        # Create label with proper pronunciation - "note over root, quality"
+        # Create label with proper pronunciation - "note, over root, quality"
+        # Commas create natural pauses in text-to-speech
         degree_pronunciation = SOLFEGE_PRONUNCIATION.get(chosen_degree, chosen_degree)
         root_pronunciation = SOLFEGE_PRONUNCIATION.get(root_degree, root_degree)
-        label = f"{degree_pronunciation} over {root_pronunciation}, {quality}"
+        label = f"{degree_pronunciation}, over {root_pronunciation}, {quality}"
 
         return melody_note, label
     
