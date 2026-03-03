@@ -15,7 +15,7 @@ class SpeechManager: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     private var onComplete: (() -> Void)?
 
     @Published var isSpeaking = false
-    var volume: Float = 0.7
+    var volume: Float = 0.1  // Default to 50% on scaled slider (0.5 * 0.2)
 
     override init() {
         super.init()

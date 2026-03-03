@@ -12,9 +12,10 @@ struct ContentView: View {
 
     @State private var selectedMode: Mode = .major
     @State private var enabledChords: Set<String> = Set(chordKeys)
-    @State private var voiceVolume: Double = 0.7
-    @State private var delay: Double = 1.5
+    @State private var voiceVolume: Double = 0.5
+    @State private var delay: Double = 3.0
     @State private var guitarMode: Bool = false
+    @State private var chordsOnly: Bool = true
 
     var body: some View {
         VStack(spacing: 20) {
@@ -85,7 +86,7 @@ struct ContentView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
 
-                Slider(value: $delay, in: 0.5...3.0, step: 0.1)
+                Slider(value: $delay, in: 0.5...5.0, step: 0.1)
                     .onChange(of: delay) { _, newValue in
                         player.delay = newValue
                     }
@@ -101,18 +102,26 @@ struct ContentView: View {
 
                 Slider(value: $voiceVolume, in: 0...1)
                     .onChange(of: voiceVolume) { _, newValue in
-                        SpeechManager.shared.volume = Float(newValue)
+                        SpeechManager.shared.volume = Float(newValue) * 0.2
                     }
             }
             .padding(.horizontal)
 
-            // Guitar Mode Toggle
-            Toggle("Guitar", isOn: $guitarMode)
-                .onChange(of: guitarMode) { _, newValue in
-                    player.guitarMode = newValue
-                }
-                .disabled(player.state != .stopped)
-                .padding(.horizontal)
+            // Mode Toggles
+            VStack(spacing: 12) {
+                Toggle("Guitar", isOn: $guitarMode)
+                    .onChange(of: guitarMode) { _, newValue in
+                        player.guitarMode = newValue
+                    }
+                    .disabled(player.state != .stopped)
+
+                Toggle("Chords Only", isOn: $chordsOnly)
+                    .onChange(of: chordsOnly) { _, newValue in
+                        player.skipNakedNote = newValue
+                    }
+                    .disabled(player.state != .stopped)
+            }
+            .padding(.horizontal)
 
             Spacer()
 
@@ -203,6 +212,7 @@ struct ContentView: View {
                         player.mode = selectedMode
                         player.delay = delay
                         player.guitarMode = guitarMode
+                        player.skipNakedNote = chordsOnly
                         player.start()
                     }) {
                         Image(systemName: "play.fill")

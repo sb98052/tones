@@ -1,0 +1,125 @@
+{
+  "exercises": [
+    {
+      "name": "Permutations",
+      "atoms": ["multiselect", "permutations"],
+      "multiselect" :[[1,2,3],["up","down"]],
+      "max_position": 4,
+      "chords": [
+        "la_minor",
+        "mi_dominant",
+        "mi7_dominant"
+      ]
+    },
+    {
+      "name": "Surround middle 3",
+      "atoms": ["position"],
+      "max_position": 3,
+      "chords": [
+        "la_minor"
+      ]
+    }, 
+    {
+      "name": "Move middle 3",
+      "atoms": ["position", "down"],
+      "max_position": 5,
+      "chords": [
+        "la_minor",
+        "mi_dominant",
+        "mi7_dominant"
+      ]
+    },
+    {
+      "name": "Important Frame",
+      "atoms": ["position"],
+      "max_position": 3,
+      "chords": [
+        "la_minor",
+        "mi_dominant",
+        "mi7_dominant"
+      ]
+    },
+
+    {
+      "name": "Treble Arpeggio",
+      "atoms": ["multiselect", "multiselect"],
+      "multiselect" :[[1,2,3],["up","down"]],
+      "chords": [
+        "la_minor", "re_minor", "mi_minor",
+        "do_major", "fa_major", "sol_major",
+        "mi_dominant", "re_dominant",
+        "mi7_dominant", "la_minor_dm", "re_minor_gm", "fa_major_bb",
+        "la7_dominant", "re7_dominant", "sol7_dominant",
+        "fa_minor",
+        "re_minor7", "do_major7", "fa_major7"
+      ]
+    },
+    {
+      "name": "Treble 6",
+      "atoms": ["multiselect", "multiselect"],
+      "multiselect" :[[1,2,3],["up","down"]],
+      "chords": [
+        "la_minor", "re_minor", "mi_minor",
+        "do_major", "fa_major", "sol_major",
+        "mi_dominant", "re_dominant",
+        "mi7_dominant", "la_minor_dm", "re_minor_gm", "fa_major_bb",
+        "la7_dominant", "re7_dominant", "sol7_dominant",
+        "fa_minor",
+        "re_minor7", "do_major7", "fa_major7"
+      ]
+    },
+    {
+      "name": "Bass 6",
+      "atoms": ["multiselect", "multiselect"],
+      "multiselect" :[[1,2,3],["up","down"]],
+      "chords": [
+        "la_minor", "re_minor", "mi_minor",
+        "do_major", "fa_major", "sol_major",
+        "mi_dominant", "re_dominant",
+        "mi7_dominant", "la_minor_dm", "re_minor_gm", "fa_major_bb",
+        "la7_dominant", "re7_dominant", "sol7_dominant",
+        "fa_minor",
+        "re_minor7", "do_major7", "fa_major7"
+      ]
+    },
+    {
+      "name": "Full Arpeggio",
+      "atoms": ["position", "down"],
+      "max_position": 3,
+      "chords": [
+        "la_minor", "re_minor", "mi_minor",
+        "do_major", "fa_major", "sol_major",
+        "mi_dominant", "re_dominant",
+        "mi7_dominant", "la_minor_dm", "re_minor_gm", "fa_major_bb",
+        "la7_dominant", "re7_dominant", "sol7_dominant",
+        "fa_minor",
+        "re_minor7", "do_major7", "fa_major7"
+      ]
+    },
+    {
+      "name": "Horizontal 6",
+      "atoms": ["down"],
+      "chords": [
+        "la_minor"
+      ]
+    },
+    {
+      "name": "Horizontal Triad",
+      "atoms": ["down"],
+      "chords": [
+        "la_minor", "re_minor", "mi_minor",
+        "do_major", "fa_major", "sol_major",
+        "mi_dominant", "re_dominant",
+        "mi7_dominant", "la_minor_dm", "re_minor_gm", "fa_major_bb",
+        "la7_dominant", "re7_dominant", "sol7_dominant",
+        "fa_minor",
+        "re_minor7", "do_major7", "fa_major7"
+      ]
+    },
+    {
+      "name": "La pompe",
+      "atoms": [],
+      "chords": []
+    }
+  ]
+}

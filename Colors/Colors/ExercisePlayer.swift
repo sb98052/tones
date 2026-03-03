@@ -29,9 +29,10 @@ class ExercisePlayer: ObservableObject {
     var enabledChords: Set<String> = Set(chordKeys)  // All chords enabled by default
     var chordOctaves: [Int] = [3, 4]
     var melodyOctave: Int = 5
-    var delay: TimeInterval = 1.5  // Configurable delay between sounds
+    var delay: TimeInterval = 3.0  // Configurable delay between sounds
     var waitTimeAfterExercise: TimeInterval = 2.0
     var guitarMode: Bool = false
+    var skipNakedNote: Bool = false  // Skip playing melody note alone, only play with chords
 
     // MARK: - Guitar Mode State
 
@@ -154,12 +155,14 @@ class ExercisePlayer: ObservableObject {
         let shuffledChords = chords.shuffled()
         currentChords = shuffledChords
 
-        // 1. Play the melody note alone first
+        // 1. Play the melody note alone first (unless skipNakedNote is enabled)
         let melodyNote = key.solfegeToNote(degree, octave: melodyOctave)
         lastMelodyNote = melodyNote
-        audioManager.playMelodyOnly(note: melodyNote)
-        try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-        if Task.isCancelled { return }
+        if !skipNakedNote {
+            audioManager.playMelodyOnly(note: melodyNote)
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            if Task.isCancelled { return }
+        }
 
         // 2. Build and store all chord voicings first
         var allChordVoicings: [[String]] = []
@@ -244,10 +247,12 @@ class ExercisePlayer: ObservableObject {
         let chordVoicings = lastChordVoicings
 
         Task { @MainActor in
-            // Play the melody note alone first
-            audioManager.playMelodyOnly(note: melodyNote)
-            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-            if Task.isCancelled { return }
+            // Play the melody note alone first (unless chords only mode)
+            if !skipNakedNote {
+                audioManager.playMelodyOnly(note: melodyNote)
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                if Task.isCancelled { return }
+            }
 
             // Play each chord with the exact same voicing
             for chordNotes in chordVoicings {
@@ -270,16 +275,18 @@ class ExercisePlayer: ObservableObject {
         let melodyNote = key.solfegeToNote(degree, octave: melodyOctave)
         let answerDelay = delay / 2  // Half delay for answer section
 
-        // 1. Say the degree
-        announcement = degreePronunciation
-        await speakText(degreePronunciation)
-        try? await Task.sleep(nanoseconds: UInt64(answerDelay * 1_000_000_000))
-        if Task.isCancelled { return }
+        // 1. Say and play the degree alone (unless chords only mode)
+        if !skipNakedNote {
+            announcement = degreePronunciation
+            await speakText(degreePronunciation)
+            try? await Task.sleep(nanoseconds: UInt64(answerDelay * 1_000_000_000))
+            if Task.isCancelled { return }
 
-        // 2. Play the degree
-        audioManager.playMelodyOnly(note: melodyNote)
-        try? await Task.sleep(nanoseconds: UInt64(answerDelay * 1_000_000_000))
-        if Task.isCancelled { return }
+            // 2. Play the degree
+            audioManager.playMelodyOnly(note: melodyNote)
+            try? await Task.sleep(nanoseconds: UInt64(answerDelay * 1_000_000_000))
+            if Task.isCancelled { return }
+        }
 
         // 3. For each chord: say "degree over chord" then play it
         for chordKey in chords {
