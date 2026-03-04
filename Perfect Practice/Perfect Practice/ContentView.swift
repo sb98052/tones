@@ -51,6 +51,7 @@ struct ContentView: View {
     @State private var selectedTimeSignature: TimeSignature = .fourQuarter
     @State private var enabledExercises: Set<String> = Set(ExerciseCatalog.shared.exercises.map { $0.id })
     @State private var warmUp = true
+    @State private var rotate = false
     @ObservedObject private var catalog = ExerciseCatalog.shared
 
     private var progressionKeys: [String] {
@@ -141,6 +142,10 @@ struct ContentView: View {
             Toggle("Warm Up", isOn: $warmUp)
                 .padding(.horizontal)
 
+            // Rotate toggle
+            Toggle("Rotate", isOn: $rotate)
+                .padding(.horizontal)
+
             Spacer()
 
             // Play button
@@ -149,6 +154,7 @@ struct ContentView: View {
                 engine.timeSignature = selectedTimeSignature
                 engine.enabledExercises = enabledExercises
                 engine.warmUp = warmUp
+                engine.rotate = rotate
                 engine.start(progressionKey: selectedProgression)
             }) {
                 Image(systemName: "play.fill")

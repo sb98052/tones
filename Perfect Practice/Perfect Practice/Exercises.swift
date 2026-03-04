@@ -107,13 +107,31 @@ struct ExerciseSpec: Identifiable {
     let atoms: [Atom]
     let chords: Set<String>
     let params: AtomParams
+    let notes: [Int]
 
-    func generate() -> Exercise {
+    func generate(chordKey: String = "", rotate: Bool = false) -> Exercise {
         var lines: [ExerciseLine] = []
         var used: Set<[String]> = []
         for atom in atoms {
             lines.append(contentsOf: atom.generate(params: params, used: &used))
         }
+
+        // Resolve notes to solfege if specified
+        if !notes.isEmpty, !chordKey.isEmpty {
+            let solfege = solfegeNotes(for: chordKey, degrees: notes)
+            if !solfege.isEmpty {
+                lines.append(ExerciseLine(label: "Notes", value: solfege.joined(separator: " "), emphasis: false))
+
+                // Rotate: pick a random start note from unique notes
+                if rotate {
+                    let unique = Array(Set(solfege))
+                    if let startNote = unique.randomElement() {
+                        lines.append(ExerciseLine(label: "Start", value: startNote, emphasis: true))
+                    }
+                }
+            }
+        }
+
         return Exercise(typeName: name, displayLines: lines)
     }
 
@@ -205,10 +223,10 @@ class ExerciseCatalog: ObservableObject {
     }
 
     /// Generate a random exercise for the given chord
-    func generateForChord(_ chordKey: String, enabled: Set<String>) -> Exercise? {
+    func generateForChord(_ chordKey: String, enabled: Set<String>, rotate: Bool = false) -> Exercise? {
         let matching = exercisesForChord(chordKey, enabled: enabled)
         guard let spec = matching.randomElement() else { return nil }
-        return spec.generate()
+        return spec.generate(chordKey: chordKey, rotate: rotate)
     }
 
     // MARK: - JSON Parsing
@@ -250,12 +268,15 @@ class ExerciseCatalog: ObservableObject {
             }
         }
 
+        let notes = dict["notes"] as? [Int] ?? []
+
         return ExerciseSpec(
             id: id,
             name: name,
             atoms: atoms,
             chords: Set(chordStrings),
-            params: params
+            params: params,
+            notes: notes
         )
     }
 }

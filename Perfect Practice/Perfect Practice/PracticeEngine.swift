@@ -31,6 +31,7 @@ class PracticeEngine: ObservableObject {
     var timeSignature: TimeSignature = .fourQuarter
     var enabledExercises: Set<String> = Set(ExerciseCatalog.shared.exercises.map { $0.id })
     var warmUp: Bool = false
+    var rotate: Bool = false
 
     // MARK: - Private Properties
 
@@ -60,8 +61,8 @@ class PracticeEngine: ObservableObject {
         nextChordName = prog.chords.count > 1 ? prog.chords[1] : prog.chords[0]
 
         // Generate first exercises based on the first chord
-        currentExercise = catalog.generateForChord(currentChordName, enabled: enabledExercises)
-        nextExercise = catalog.generateForChord(nextChordName, enabled: enabledExercises)
+        currentExercise = catalog.generateForChord(currentChordName, enabled: enabledExercises, rotate: rotate)
+        nextExercise = catalog.generateForChord(nextChordName, enabled: enabledExercises, rotate: rotate)
 
         startPlaybackLoop()
     }
@@ -153,7 +154,7 @@ class PracticeEngine: ObservableObject {
                     // Rotate exercises (skip on first chord - already set in start())
                     if i > 0 {
                         currentExercise = nextExercise
-                        nextExercise = catalog.generateForChord(nextChordName, enabled: enabledExercises)
+                        nextExercise = catalog.generateForChord(nextChordName, enabled: enabledExercises, rotate: rotate)
                     }
 
                     // Wait for pedal tap / screen tap
@@ -205,7 +206,7 @@ class PracticeEngine: ObservableObject {
                     // Rotate exercises (skip on first chord - already set in start())
                     if i > 0 {
                         currentExercise = nextExercise
-                        nextExercise = catalog.generateForChord(nextChordName, enabled: enabledExercises)
+                        nextExercise = catalog.generateForChord(nextChordName, enabled: enabledExercises, rotate: rotate)
                     }
 
                     // Play one measure: beat by beat

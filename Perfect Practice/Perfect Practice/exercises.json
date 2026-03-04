@@ -22,6 +22,7 @@
     {
       "name": "Move middle 3",
       "atoms": ["position", "down"],
+      "notes": [1, 3, 5],
       "max_position": 5,
       "chords": [
         "la_minor",
@@ -44,6 +45,7 @@
       "name": "Treble Arpeggio",
       "atoms": ["multiselect", "multiselect"],
       "multiselect" :[[1,2,3],["up","down"]],
+      "notes":[1,3,5],
       "chords": [
         "la_minor", "re_minor", "mi_minor",
         "do_major", "fa_major", "sol_major",
@@ -58,6 +60,7 @@
       "name": "Treble 6",
       "atoms": ["multiselect", "multiselect"],
       "multiselect" :[[1,2,3],["up","down"]],
+      "notes":[1,3,5,6],
       "chords": [
         "la_minor", "re_minor", "mi_minor",
         "do_major", "fa_major", "sol_major",
@@ -71,6 +74,7 @@
     {
       "name": "Bass 6",
       "atoms": ["multiselect", "multiselect"],
+      "notes":[1,3,5,6],
       "multiselect" :[[1,2,3],["up","down"]],
       "chords": [
         "la_minor", "re_minor", "mi_minor",
@@ -85,6 +89,7 @@
     {
       "name": "Full Arpeggio",
       "atoms": ["position", "down"],
+      "notes":[1,3,5],
       "max_position": 3,
       "chords": [
         "la_minor", "re_minor", "mi_minor",
@@ -98,6 +103,7 @@
     },
     {
       "name": "Horizontal 6",
+      "notes":[1,3,5,6],
       "atoms": ["down"],
       "chords": [
         "la_minor"
@@ -105,6 +111,7 @@
     },
     {
       "name": "Horizontal Triad",
+      "notes":[1,3,5],
       "atoms": ["down"],
       "chords": [
         "la_minor", "re_minor", "mi_minor",
