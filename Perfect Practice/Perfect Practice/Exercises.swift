@@ -18,7 +18,11 @@ struct ExerciseLine {
 
 struct Exercise {
     let typeName: String
+    let symbol: String
+    let titleSuffix: String
     let displayLines: [ExerciseLine]
+    let solfegeNotes: [String]
+    let startNoteIndex: Int?
 }
 
 // MARK: - Atom Parameters
@@ -63,11 +67,11 @@ enum Atom: String {
 
         case .updown:
             let patterns = ["Up Up", "Down Down", "Up Down", "Down Up"]
-            return [ExerciseLine(label: "Pattern", value: patterns.randomElement()!, emphasis: false)]
+            return [ExerciseLine(label: "_suffix", value: patterns.randomElement()!, emphasis: false)]
 
         case .down:
             let direction = Bool.random() ? "Down" : "Up"
-            return [ExerciseLine(label: "Direction", value: direction, emphasis: false)]
+            return [ExerciseLine(label: "_suffix", value: direction, emphasis: false)]
 
         case .position2:
             let pos1 = Int.random(in: 1...params.maxPosition)
@@ -104,35 +108,45 @@ enum Atom: String {
 struct ExerciseSpec: Identifiable {
     let id: String  // derived from name
     let name: String
+    let symbol: String
     let atoms: [Atom]
     let chords: Set<String>
     let params: AtomParams
     let notes: [Int]
 
     func generate(chordKey: String = "", rotate: Bool = false) -> Exercise {
-        var lines: [ExerciseLine] = []
+        var allLines: [ExerciseLine] = []
         var used: Set<[String]> = []
         for atom in atoms {
-            lines.append(contentsOf: atom.generate(params: params, used: &used))
+            allLines.append(contentsOf: atom.generate(params: params, used: &used))
         }
 
-        // Resolve notes to solfege if specified
-        if !notes.isEmpty, !chordKey.isEmpty {
-            let solfege = solfegeNotes(for: chordKey, degrees: notes)
-            if !solfege.isEmpty {
-                lines.append(ExerciseLine(label: "Notes", value: solfege.joined(separator: " "), emphasis: false))
+        // Extract _suffix lines and fold into title
+        let suffixParts = allLines.filter { $0.label == "_suffix" }.map { $0.value }
+        let displayLines = allLines.filter { $0.label != "_suffix" }
+        let titleSuffix = suffixParts.joined(separator: " ")
 
-                // Rotate: pick a random start note from unique notes
-                if rotate {
-                    let unique = Array(Set(solfege))
-                    if let startNote = unique.randomElement() {
-                        lines.append(ExerciseLine(label: "Start", value: startNote, emphasis: true))
-                    }
+        // Resolve notes to solfege
+        var solfege: [String] = []
+        var startIndex: Int? = nil
+        if !notes.isEmpty, !chordKey.isEmpty {
+            solfege = solfegeNotes(for: chordKey, degrees: notes)
+            if rotate, !solfege.isEmpty {
+                let unique = Array(Set(solfege))
+                if let startNote = unique.randomElement() {
+                    startIndex = solfege.firstIndex(of: startNote)
                 }
             }
         }
 
-        return Exercise(typeName: name, displayLines: lines)
+        return Exercise(
+            typeName: name,
+            symbol: symbol,
+            titleSuffix: titleSuffix,
+            displayLines: displayLines,
+            solfegeNotes: solfege,
+            startNoteIndex: startIndex
+        )
     }
 
     func matchesChord(_ chordKey: String) -> Bool {
@@ -158,45 +172,61 @@ class ExerciseCatalog: ObservableObject {
         exercises = ExerciseCatalog.loadLocal()
     }
 
-    /// Load from local cache, falling back to bundled file (firmware fallback)
+    /// Load from whichever local source (cache or bundle) has the higher version
     private static func loadLocal() -> [ExerciseSpec] {
-        // Try cached file first
-        if FileManager.default.fileExists(atPath: cachedFileURL.path) {
-            if let specs = parseFile(at: cachedFileURL), !specs.isEmpty {
-                print("Loaded exercises from cache")
-                return specs
-            }
-            // Cache exists but is invalid — delete it
-            print("Cached exercises.json invalid, deleting")
-            try? FileManager.default.removeItem(at: cachedFileURL)
+        let bundleURL = Bundle.main.url(forResource: "exercises", withExtension: "json")
+
+        let cachedData = FileManager.default.fileExists(atPath: cachedFileURL.path)
+            ? try? Data(contentsOf: cachedFileURL) : nil
+        let bundleData = bundleURL.flatMap { try? Data(contentsOf: $0) }
+
+        let cachedVersion = cachedData.map { parseVersion($0) } ?? -1
+        let bundleVersion = bundleData.map { parseVersion($0) } ?? -1
+
+        print("Local versions — cache: \(cachedVersion), bundle: \(bundleVersion)")
+
+        // Use whichever is newer
+        if cachedVersion >= bundleVersion, let data = cachedData,
+           let specs = parseData(data), !specs.isEmpty {
+            print("Loaded exercises from cache (v\(cachedVersion))")
+            return specs
         }
 
-        // Fallback: copy bundle file to cache and load
-        if let bundleURL = Bundle.main.url(forResource: "exercises", withExtension: "json") {
-            try? FileManager.default.copyItem(at: bundleURL, to: cachedFileURL)
-            if let specs = parseFile(at: bundleURL), !specs.isEmpty {
-                print("Loaded exercises from bundle (firmware fallback)")
-                return specs
-            }
+        if let data = bundleData, let specs = parseData(data), !specs.isEmpty {
+            // Bundle is newer — overwrite cache
+            try? data.write(to: cachedFileURL)
+            print("Loaded exercises from bundle (v\(bundleVersion)), updated cache")
+            return specs
+        }
+
+        // Both failed — clean up bad cache
+        if cachedData != nil {
+            try? FileManager.default.removeItem(at: cachedFileURL)
         }
 
         print("Could not load exercises locally, will try remote")
         return []
     }
 
-    /// Check remote for updates and reload if changed
+    /// Check remote for updates and reload if version is newer
     func refresh() {
         Task {
             do {
                 let (data, _) = try await URLSession.shared.data(from: ExerciseCatalog.remoteURL)
 
-                // Compare with current cached file only if we already have exercises
-                if !exercises.isEmpty {
-                    let cachedData = try? Data(contentsOf: ExerciseCatalog.cachedFileURL)
-                    if cachedData == data {
-                        print("Exercises unchanged, skipping update")
-                        return
-                    }
+                let remoteVersion = ExerciseCatalog.parseVersion(data)
+                let currentVersion: Int
+                if let cachedData = try? Data(contentsOf: ExerciseCatalog.cachedFileURL) {
+                    currentVersion = ExerciseCatalog.parseVersion(cachedData)
+                } else {
+                    currentVersion = -1
+                }
+
+                print("Remote version: \(remoteVersion), current version: \(currentVersion)")
+
+                guard remoteVersion > currentVersion else {
+                    print("Remote not newer, skipping update")
+                    return
                 }
 
                 // Validate before saving
@@ -207,7 +237,7 @@ class ExerciseCatalog: ObservableObject {
 
                 // Save to cache and update
                 try data.write(to: ExerciseCatalog.cachedFileURL)
-                print("Updated exercises from remote (\(specs.count) exercises)")
+                print("Updated exercises from remote (v\(remoteVersion), \(specs.count) exercises)")
                 await MainActor.run {
                     self.exercises = specs
                 }
@@ -234,6 +264,11 @@ class ExerciseCatalog: ObservableObject {
     private static func parseFile(at url: URL) -> [ExerciseSpec]? {
         guard let data = try? Data(contentsOf: url) else { return nil }
         return parseData(data)
+    }
+
+    private static func parseVersion(_ data: Data) -> Int {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return 0 }
+        return json["version"] as? Int ?? 0
     }
 
     private static func parseData(_ data: Data) -> [ExerciseSpec]? {
@@ -269,10 +304,12 @@ class ExerciseCatalog: ObservableObject {
         }
 
         let notes = dict["notes"] as? [Int] ?? []
+        let symbol = dict["symbol"] as? String ?? "●"
 
         return ExerciseSpec(
             id: id,
             name: name,
+            symbol: symbol,
             atoms: atoms,
             chords: Set(chordStrings),
             params: params,

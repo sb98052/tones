@@ -257,18 +257,24 @@ struct ContentView: View {
         color: Color,
         isLarge: Bool
     ) -> some View {
-        VStack(spacing: isLarge ? 12 : 8) {
+        VStack(spacing: isLarge ? 10 : 6) {
+            // Chord name
             Text(chordName)
                 .font(isLarge ? .title2 : .callout)
                 .fontWeight(.bold)
                 .foregroundColor(color)
 
             if let exercise = exercise {
-                Text(exercise.typeName)
-                    .font(isLarge ? .title2 : .headline)
+                // Symbol + Name + Direction on one line
+                let title = [exercise.symbol, exercise.typeName, exercise.titleSuffix]
+                    .filter { !$0.isEmpty }
+                    .joined(separator: " ")
+                Text(title)
+                    .font(isLarge ? .title3 : .subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(color)
 
+                // Remaining atom lines (position, pattern, multiselect)
                 ForEach(Array(exercise.displayLines.enumerated()), id: \.offset) { _, line in
                     HStack {
                         Text(line.label)
@@ -282,10 +288,45 @@ struct ContentView: View {
                             .foregroundColor(line.emphasis ? color : .primary)
                     }
                 }
+
+                // Solfege notes with inline start note highlighting
+                if !exercise.solfegeNotes.isEmpty {
+                    solfegeNotesView(
+                        notes: exercise.solfegeNotes,
+                        startIndex: exercise.startNoteIndex,
+                        color: color,
+                        isLarge: isLarge
+                    )
+                }
             }
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
+    }
+
+    private func solfegeNotesView(
+        notes: [String],
+        startIndex: Int?,
+        color: Color,
+        isLarge: Bool
+    ) -> some View {
+        // Wrap notes in a flowing layout
+        let noteFont: Font = isLarge ? .title3 : .caption
+        let highlightFont: Font = isLarge ? .system(size: 28, weight: .bold) : .system(size: 16, weight: .bold)
+
+        return HStack(spacing: isLarge ? 8 : 4) {
+            ForEach(Array(notes.enumerated()), id: \.offset) { index, note in
+                if index == startIndex {
+                    Text(note.uppercased())
+                        .font(highlightFont)
+                        .foregroundColor(color)
+                } else {
+                    Text(note)
+                        .font(noteFont)
+                        .foregroundColor(.primary)
+                }
+            }
+        }
     }
 }
 

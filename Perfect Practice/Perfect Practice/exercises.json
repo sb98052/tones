@@ -1,9 +1,11 @@
 {
+  "version": 2,
   "exercises": [
     {
       "name": "Permutations",
+      "symbol": "♯",
       "atoms": ["multiselect", "permutations"],
-      "multiselect" :[[1,2,3],["up","down"]],
+      "multiselect": [[1,2,3],["up","down"]],
       "max_position": 4,
       "chords": [
         "la_minor",
@@ -13,14 +15,16 @@
     },
     {
       "name": "Surround middle 3",
+      "symbol": "◎",
       "atoms": ["position"],
       "max_position": 3,
       "chords": [
         "la_minor"
       ]
-    }, 
+    },
     {
       "name": "Move middle 3",
+      "symbol": "↕",
       "atoms": ["position", "down"],
       "notes": [1, 3, 5],
       "max_position": 5,
@@ -32,6 +36,7 @@
     },
     {
       "name": "Important Frame",
+      "symbol": "★",
       "atoms": ["position"],
       "max_position": 3,
       "chords": [
@@ -40,12 +45,12 @@
         "mi7_dominant"
       ]
     },
-
     {
       "name": "Treble Arpeggio",
+      "symbol": "▲",
       "atoms": ["multiselect", "multiselect"],
-      "multiselect" :[[1,2,3],["up","down"]],
-      "notes":[1,3,5],
+      "multiselect": [[1,2,3],["up","down"]],
+      "notes": [1, 3, 5],
       "chords": [
         "la_minor", "re_minor", "mi_minor",
         "do_major", "fa_major", "sol_major",
@@ -58,9 +63,10 @@
     },
     {
       "name": "Treble 6",
+      "symbol": "△",
       "atoms": ["multiselect", "multiselect"],
-      "multiselect" :[[1,2,3],["up","down"]],
-      "notes":[1,3,5,6],
+      "multiselect": [[1,2,3],["up","down"]],
+      "notes": [1, 3, 5, 6],
       "chords": [
         "la_minor", "re_minor", "mi_minor",
         "do_major", "fa_major", "sol_major",
@@ -73,9 +79,10 @@
     },
     {
       "name": "Bass 6",
+      "symbol": "▽",
       "atoms": ["multiselect", "multiselect"],
-      "notes":[1,3,5,6],
-      "multiselect" :[[1,2,3],["up","down"]],
+      "multiselect": [[1,2,3],["up","down"]],
+      "notes": [1, 3, 5, 6],
       "chords": [
         "la_minor", "re_minor", "mi_minor",
         "do_major", "fa_major", "sol_major",
@@ -88,8 +95,9 @@
     },
     {
       "name": "Full Arpeggio",
+      "symbol": "◆",
       "atoms": ["position", "down"],
-      "notes":[1,3,5],
+      "notes": [1, 3, 5],
       "max_position": 3,
       "chords": [
         "la_minor", "re_minor", "mi_minor",
@@ -103,16 +111,18 @@
     },
     {
       "name": "Horizontal 6",
-      "notes":[1,3,5,6],
+      "symbol": "⊙",
       "atoms": ["down"],
+      "notes": [1, 3, 5, 6],
       "chords": [
         "la_minor"
       ]
     },
     {
       "name": "Horizontal Triad",
-      "notes":[1,3,5],
+      "symbol": "→",
       "atoms": ["down"],
+      "notes": [1, 3, 5],
       "chords": [
         "la_minor", "re_minor", "mi_minor",
         "do_major", "fa_major", "sol_major",
@@ -125,6 +135,7 @@
     },
     {
       "name": "La pompe",
+      "symbol": "♪",
       "atoms": [],
       "chords": []
     }
