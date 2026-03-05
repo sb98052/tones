@@ -127,11 +127,42 @@ let chordScales: [String: [String]] = [
     "fa_major7":     ["fa", "sol", "la", "ti", "do", "re", "mi"],
 ]
 
-/// Resolve scale degree numbers (1-7) to solfege names for a given chord
-func solfegeNotes(for chordKey: String, degrees: [Int]) -> [String] {
+// Chromatic alterations: raised and lowered solfege names
+private let raisedSolfege: [String: String] = [
+    "do": "di", "re": "ri", "mi": "fi", "fa": "fi",
+    "sol": "si", "la": "li", "ti": "di",
+    "le": "la", "te": "ti", "me": "mi", "ra": "re", "se": "sol",
+]
+
+private let loweredSolfege: [String: String] = [
+    "do": "ti", "re": "ra", "mi": "me", "fa": "mi",
+    "sol": "se", "la": "le", "ti": "te",
+    "di": "do", "ri": "re", "fi": "fa", "si": "sol", "li": "la",
+]
+
+/// Resolve scale degree specs to solfege names for a given chord.
+/// Accepts: integers (1-7), or strings like "#6" (raised) / "b3" (lowered).
+func solfegeNotes(for chordKey: String, degrees: [Any]) -> [String] {
     guard let scale = chordScales[chordKey] else { return [] }
-    return degrees.compactMap { degree in
-        guard degree >= 1, degree <= 7 else { return nil }
-        return scale[degree - 1]
+    return degrees.compactMap { degree -> String? in
+        if let n = degree as? Int {
+            guard n >= 1, n <= 7 else { return nil }
+            return scale[n - 1]
+        }
+        if let s = degree as? String {
+            if s.hasPrefix("#"), let n = Int(s.dropFirst(1)), n >= 1, n <= 7 {
+                let base = scale[n - 1]
+                return raisedSolfege[base] ?? base
+            }
+            if s.hasPrefix("b"), let n = Int(s.dropFirst(1)), n >= 1, n <= 7 {
+                let base = scale[n - 1]
+                return loweredSolfege[base] ?? base
+            }
+            // Plain number as string
+            if let n = Int(s), n >= 1, n <= 7 {
+                return scale[n - 1]
+            }
+        }
+        return nil
     }
 }

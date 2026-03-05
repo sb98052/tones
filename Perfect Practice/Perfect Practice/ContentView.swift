@@ -49,9 +49,9 @@ struct ContentView: View {
     @State private var selectedProgression = "minor_swing"
     @State private var bpm: Double = 120
     @State private var selectedTimeSignature: TimeSignature = .fourQuarter
-    @State private var enabledExercises: Set<String> = Set(ExerciseCatalog.shared.exercises.map { $0.id })
+    @State private var enabledExercises: Set<String> = Set(ExerciseCatalog.shared.exercises.filter { !$0.disabled }.map { $0.id })
     @State private var warmUp = true
-    @State private var rotate = false
+    @State private var rotate = true
     @ObservedObject private var catalog = ExerciseCatalog.shared
 
     private var progressionKeys: [String] {
@@ -75,6 +75,14 @@ struct ContentView: View {
                 practiceView
             }
         }
+        .alert("Exercise Parse Error", isPresented: Binding(
+            get: { catalog.parseError != nil },
+            set: { if !$0 { catalog.parseError = nil } }
+        )) {
+            Button("OK") { catalog.parseError = nil }
+        } message: {
+            Text(catalog.parseError ?? "")
+        }
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = true
             catalog.refresh()
@@ -83,9 +91,10 @@ struct ContentView: View {
             catalog.refresh()
         }
         .onReceive(catalog.$exercises) { newExercises in
-            // Enable new exercises by default
-            let newIds = Set(newExercises.map { $0.id })
-            enabledExercises = enabledExercises.union(newIds.subtracting(enabledExercises))
+            // Enable new non-disabled exercises by default
+            let newIds = Set(newExercises.filter { !$0.disabled }.map { $0.id })
+            let disabledIds = Set(newExercises.filter { $0.disabled }.map { $0.id })
+            enabledExercises = enabledExercises.union(newIds.subtracting(enabledExercises)).subtracting(disabledIds)
         }
     }
 
@@ -96,6 +105,15 @@ struct ContentView: View {
             Text("Perfect Practice")
                 .font(.largeTitle)
                 .fontWeight(.bold)
+                .onLongPressGesture(minimumDuration: 2) {
+                    engine.bpm = bpm
+                    engine.timeSignature = selectedTimeSignature
+                    engine.enabledExercises = enabledExercises
+                    engine.warmUp = true
+                    engine.rotate = rotate
+                    engine.debugMode = true
+                    engine.start(progressionKey: selectedProgression)
+                }
 
             // Progression Picker
             VStack(alignment: .leading, spacing: 8) {
@@ -155,6 +173,7 @@ struct ContentView: View {
                 engine.enabledExercises = enabledExercises
                 engine.warmUp = warmUp
                 engine.rotate = rotate
+                engine.debugMode = false
                 engine.start(progressionKey: selectedProgression)
             }) {
                 Image(systemName: "play.fill")
@@ -171,7 +190,7 @@ struct ContentView: View {
 
     private var exercisesView: some View {
         List {
-            ForEach(catalog.exercises) { spec in
+            ForEach(catalog.exercises.filter { !$0.disabled }) { spec in
                 Toggle(spec.name, isOn: Binding(
                     get: { enabledExercises.contains(spec.id) },
                     set: { enabled in

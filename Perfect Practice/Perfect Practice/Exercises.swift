@@ -112,7 +112,8 @@ struct ExerciseSpec: Identifiable {
     let atoms: [Atom]
     let chords: Set<String>
     let params: AtomParams
-    let notes: [Int]
+    let notes: [String]  // "1"-"7" for diatonic, "#6" for raised, "b3" for lowered
+    let disabled: Bool
 
     func generate(chordKey: String = "", rotate: Bool = false) -> Exercise {
         var allLines: [ExerciseLine] = []
@@ -130,7 +131,12 @@ struct ExerciseSpec: Identifiable {
         var solfege: [String] = []
         var startIndex: Int? = nil
         if !notes.isEmpty, !chordKey.isEmpty {
-            solfege = solfegeNotes(for: chordKey, degrees: notes)
+            // Convert to [Any]: plain numbers become Int, altered degrees stay String
+            let degrees: [Any] = notes.map { s -> Any in
+                if let n = Int(s) { return n }
+                return s
+            }
+            solfege = solfegeNotes(for: chordKey, degrees: degrees)
             if rotate, !solfege.isEmpty {
                 let unique = Array(Set(solfege))
                 if let startNote = unique.randomElement() {
@@ -162,6 +168,7 @@ class ExerciseCatalog: ObservableObject {
     private static let remoteURL = URL(string: "https://perfectpractice-488920.ue.r.appspot.com/perfectpractice.json")!
 
     @Published var exercises: [ExerciseSpec]
+    @Published var parseError: String?
 
     private static var cachedFileURL: URL {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -169,11 +176,13 @@ class ExerciseCatalog: ObservableObject {
     }
 
     private init() {
-        exercises = ExerciseCatalog.loadLocal()
+        let (specs, error) = ExerciseCatalog.loadLocal()
+        exercises = specs
+        parseError = error
     }
 
     /// Load from whichever local source (cache or bundle) has the higher version
-    private static func loadLocal() -> [ExerciseSpec] {
+    private static func loadLocal() -> ([ExerciseSpec], String?) {
         let bundleURL = Bundle.main.url(forResource: "exercises", withExtension: "json")
 
         let cachedData = FileManager.default.fileExists(atPath: cachedFileURL.path)
@@ -189,23 +198,43 @@ class ExerciseCatalog: ObservableObject {
         if cachedVersion >= bundleVersion, let data = cachedData,
            let specs = parseData(data), !specs.isEmpty {
             print("Loaded exercises from cache (v\(cachedVersion))")
-            return specs
+            return (specs, nil)
         }
 
         if let data = bundleData, let specs = parseData(data), !specs.isEmpty {
             // Bundle is newer — overwrite cache
             try? data.write(to: cachedFileURL)
             print("Loaded exercises from bundle (v\(bundleVersion)), updated cache")
-            return specs
+            return (specs, nil)
         }
 
-        // Both failed — clean up bad cache
-        if cachedData != nil {
+        // Both failed — report which ones had parse errors
+        var errors: [String] = []
+        if let data = bundleData {
+            errors.append("Bundle JSON parse failed: \(parseErrorMessage(data))")
+        } else {
+            errors.append("No bundle exercises.json found")
+        }
+        if let data = cachedData {
+            errors.append("Cached JSON parse failed: \(parseErrorMessage(data))")
             try? FileManager.default.removeItem(at: cachedFileURL)
         }
 
-        print("Could not load exercises locally, will try remote")
-        return []
+        let msg = errors.joined(separator: "\n")
+        print(msg)
+        return ([], msg)
+    }
+
+    private static func parseErrorMessage(_ data: Data) -> String {
+        do {
+            let json = try JSONSerialization.jsonObject(with: data)
+            if let dict = json as? [String: Any], dict["exercises"] != nil {
+                return "JSON valid but exercises array could not be parsed"
+            }
+            return "JSON valid but missing 'exercises' key"
+        } catch {
+            return error.localizedDescription
+        }
     }
 
     /// Check remote for updates and reload if version is newer
@@ -247,9 +276,9 @@ class ExerciseCatalog: ObservableObject {
         }
     }
 
-    /// Get exercises that match the given chord and are enabled
+    /// Get exercises that match the given chord and are enabled (excluding disabled)
     func exercisesForChord(_ chordKey: String, enabled: Set<String>) -> [ExerciseSpec] {
-        exercises.filter { enabled.contains($0.id) && $0.matchesChord(chordKey) }
+        exercises.filter { !$0.disabled && enabled.contains($0.id) && $0.matchesChord(chordKey) }
     }
 
     /// Generate a random exercise for the given chord
@@ -276,10 +305,14 @@ class ExerciseCatalog: ObservableObject {
               let exerciseArray = json["exercises"] as? [[String: Any]] else {
             return nil
         }
-        return exerciseArray.compactMap { parseExercise($0) }
+        var nameCounts: [String: Int] = [:]
+        return exerciseArray.compactMap { dict -> ExerciseSpec? in
+            guard let spec = parseExercise(dict, nameCounts: &nameCounts) else { return nil }
+            return spec
+        }
     }
 
-    private static func parseExercise(_ dict: [String: Any]) -> ExerciseSpec? {
+    private static func parseExercise(_ dict: [String: Any], nameCounts: inout [String: Int]) -> ExerciseSpec? {
         guard let name = dict["name"] as? String else {
             return nil
         }
@@ -288,7 +321,10 @@ class ExerciseCatalog: ObservableObject {
         let chordStrings = dict["chords"] as? [String] ?? []
         let atoms = atomStrings.compactMap { Atom(rawValue: $0) }
 
-        let id = name.lowercased().replacingOccurrences(of: " ", with: "_")
+        let base = name.lowercased().replacingOccurrences(of: " ", with: "_")
+        let count = nameCounts[base, default: 0]
+        nameCounts[base] = count + 1
+        let id = count == 0 ? base : "\(base)_\(count + 1)"
 
         var params = AtomParams()
         if let maxPos = dict["max_position"] as? Int {
@@ -303,8 +339,18 @@ class ExerciseCatalog: ObservableObject {
             }
         }
 
-        let notes = dict["notes"] as? [Int] ?? []
+        // Notes can be ints or strings (e.g. [1, 3, 5, "#6"])
+        let notes: [String]
+        if let rawNotes = dict["notes"] as? [Any] {
+            notes = rawNotes.map { item in
+                if let n = item as? Int { return "\(n)" }
+                return "\(item)"
+            }
+        } else {
+            notes = []
+        }
         let symbol = dict["symbol"] as? String ?? "●"
+        let disabled = dict["disabled"] as? Bool ?? false
 
         return ExerciseSpec(
             id: id,
@@ -313,7 +359,8 @@ class ExerciseCatalog: ObservableObject {
             atoms: atoms,
             chords: Set(chordStrings),
             params: params,
-            notes: notes
+            notes: notes,
+            disabled: disabled
         )
     }
 }

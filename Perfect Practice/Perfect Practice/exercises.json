@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 6,
   "exercises": [
     {
       "name": "Permutations",
@@ -16,8 +16,8 @@
     {
       "name": "Surround middle 3",
       "symbol": "◎",
-      "atoms": ["position"],
-      "max_position": 3,
+      "atoms": ["down"],
+      "notes": [1, 3, 5],
       "chords": [
         "la_minor"
       ]
@@ -25,9 +25,8 @@
     {
       "name": "Move middle 3",
       "symbol": "↕",
-      "atoms": ["position", "down"],
+      "atoms": ["down"],
       "notes": [1, 3, 5],
-      "max_position": 5,
       "chords": [
         "la_minor",
         "mi_dominant",
@@ -36,11 +35,19 @@
     },
     {
       "name": "Important Frame",
+      "notes": [1, 3, 5],
       "symbol": "★",
-      "atoms": ["position"],
       "max_position": 3,
       "chords": [
-        "la_minor",
+        "la_minor"
+      ]
+    },
+    {
+      "name": "Important Frame",
+      "notes": [1, 3, 5],
+      "symbol": "★",
+      "max_position": 3,
+      "chords": [
         "mi_dominant",
         "mi7_dominant"
       ]
@@ -48,9 +55,9 @@
     {
       "name": "Treble Arpeggio",
       "symbol": "▲",
-      "atoms": ["multiselect", "multiselect"],
-      "multiselect": [[1,2,3],["up","down"]],
+      "atoms": ["position2"],
       "notes": [1, 3, 5],
+      "max_position": 3,
       "chords": [
         "la_minor", "re_minor", "mi_minor",
         "do_major", "fa_major", "sol_major",
@@ -64,9 +71,37 @@
     {
       "name": "Treble 6",
       "symbol": "△",
-      "atoms": ["multiselect", "multiselect"],
-      "multiselect": [[1,2,3],["up","down"]],
-      "notes": [1, 3, 5, 6],
+      "atoms": ["position2"],
+      "notes": [1, 3, 5, "#6"],
+      "max_position": 3,
+      "chords": [
+        "la_minor", "re_minor", "mi_minor",
+        "do_major", "fa_major", "sol_major",
+        "mi_dominant", "re_dominant",
+        "mi7_dominant", "la_minor_dm", "re_minor_gm", "fa_major_bb",
+        "la7_dominant", "re7_dominant", "sol7_dominant",
+        "fa_minor",
+        "re_minor7", "do_major7", "fa_major7"
+      ]
+    },
+    {
+      "name": "TChord",
+      "symbol": "♦",
+      "notes": [1, 3, 5],
+      "chords": [
+        "la_minor", "re_minor", "mi_minor",
+        "do_major", "fa_major", "sol_major",
+        "mi_dominant", "re_dominant",
+        "mi7_dominant", "la_minor_dm", "re_minor_gm", "fa_major_bb",
+        "la7_dominant", "re7_dominant", "sol7_dominant",
+        "fa_minor",
+        "re_minor7", "do_major7", "fa_major7"
+      ]
+    },
+    {
+      "name": "TChord 6",
+      "symbol": "◇",
+      "notes": [1, 3, 5, "#6"],
       "chords": [
         "la_minor", "re_minor", "mi_minor",
         "do_major", "fa_major", "sol_major",
@@ -82,7 +117,7 @@
       "symbol": "▽",
       "atoms": ["multiselect", "multiselect"],
       "multiselect": [[1,2,3],["up","down"]],
-      "notes": [1, 3, 5, 6],
+      "notes": [1, 3, 5, "#6"],
       "chords": [
         "la_minor", "re_minor", "mi_minor",
         "do_major", "fa_major", "sol_major",
@@ -112,8 +147,9 @@
     {
       "name": "Horizontal 6",
       "symbol": "⊙",
+      "disabled": true,
       "atoms": ["down"],
-      "notes": [1, 3, 5, 6],
+      "notes": [1, 3, 5, "#6"],
       "chords": [
         "la_minor"
       ]

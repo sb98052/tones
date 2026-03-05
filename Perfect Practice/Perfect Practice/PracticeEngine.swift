@@ -32,6 +32,7 @@ class PracticeEngine: ObservableObject {
     var enabledExercises: Set<String> = Set(ExerciseCatalog.shared.exercises.map { $0.id })
     var warmUp: Bool = false
     var rotate: Bool = false
+    var debugMode: Bool = false
 
     // MARK: - Private Properties
 
@@ -131,10 +132,45 @@ class PracticeEngine: ObservableObject {
     }
 
     private func startPlaybackLoop() {
-        if warmUp {
+        if debugMode {
+            startDebugLoop()
+        } else if warmUp {
             startWarmUpLoop()
         } else {
             startMetronomeLoop()
+        }
+    }
+
+    private func startDebugLoop() {
+        playbackTask = Task { @MainActor in
+            guard let prog = progression else { return }
+            let chord = prog.chords[0]
+            currentChordName = chord
+
+            let specs = catalog.exercisesForChord(chord, enabled: enabledExercises)
+            guard !specs.isEmpty else { return }
+
+            for i in 0..<specs.count {
+                guard state != .stopped else { return }
+
+                let spec = specs[i]
+                currentExercise = spec.generate(chordKey: chord, rotate: rotate)
+
+                let nextSpec = specs[(i + 1) % specs.count]
+                nextChordName = chord
+                nextExercise = nextSpec.generate(chordKey: chord, rotate: rotate)
+
+                // Wait for tap to advance
+                advanceRequested = false
+                while !advanceRequested {
+                    guard state != .stopped else { return }
+                    try? await Task.sleep(nanoseconds: 100_000_000)
+                    if Task.isCancelled { return }
+                }
+            }
+
+            // Done — stop automatically
+            stop()
         }
     }
 
