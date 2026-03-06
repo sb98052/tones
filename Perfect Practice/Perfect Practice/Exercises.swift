@@ -42,6 +42,7 @@ enum Atom: String {
     case updown
     case down
     case multiselect
+    case notes
 
     private static let ordinals = ["First", "Second", "Third", "Fourth", "Fifth"]
 
@@ -99,6 +100,9 @@ enum Atom: String {
             let label = Atom.ordinals[min(used.count - 1, Atom.ordinals.count - 1)]
             let value = combo.joined(separator: " ")
             return [ExerciseLine(label: label, value: value, emphasis: false)]
+
+        case .notes:
+            return []  // marker atom — rendering handled by ExerciseSpec.generate()
         }
     }
 }
@@ -109,16 +113,20 @@ struct ExerciseSpec: Identifiable {
     let id: String  // derived from name
     let name: String
     let symbol: String
-    let atoms: [Atom]
+    let atoms: [Atom]        // always active
+    let simpleAtoms: [Atom]  // active when rotate is OFF
+    let rotateAtoms: [Atom]  // active when rotate is ON
     let chords: Set<String>
     let params: AtomParams
     let notes: [String]  // "1"-"7" for diatonic, "#6" for raised, "b3" for lowered
     let disabled: Bool
 
     func generate(chordKey: String = "", rotate: Bool = false) -> Exercise {
+        let effectiveAtoms = atoms + (rotate ? rotateAtoms : simpleAtoms)
+
         var allLines: [ExerciseLine] = []
         var used: Set<[String]> = []
-        for atom in atoms {
+        for atom in effectiveAtoms where atom != .notes {
             allLines.append(contentsOf: atom.generate(params: params, used: &used))
         }
 
@@ -127,10 +135,10 @@ struct ExerciseSpec: Identifiable {
         let displayLines = allLines.filter { $0.label != "_suffix" }
         let titleSuffix = suffixParts.joined(separator: " ")
 
-        // Resolve notes to solfege
+        // Resolve notes to solfege only if .notes is in the effective atom list
         var solfege: [String] = []
         var startIndex: Int? = nil
-        if !notes.isEmpty, !chordKey.isEmpty {
+        if effectiveAtoms.contains(.notes), !notes.isEmpty, !chordKey.isEmpty {
             // Convert to [Any]: plain numbers become Int, altered degrees stay String
             let degrees: [Any] = notes.map { s -> Any in
                 if let n = Int(s) { return n }
@@ -194,18 +202,26 @@ class ExerciseCatalog: ObservableObject {
 
         print("Local versions — cache: \(cachedVersion), bundle: \(bundleVersion)")
 
-        // Use whichever is newer
-        if cachedVersion >= bundleVersion, let data = cachedData,
-           let specs = parseData(data), !specs.isEmpty {
-            print("Loaded exercises from cache (v\(cachedVersion))")
-            return (specs, nil)
-        }
+        // Check if bundle is broken (has data but fails to parse or returns version 0)
+        let bundleBroken = bundleData != nil && (bundleVersion <= 0 || parseData(bundleData!) == nil)
+        let bundleWarning: String? = bundleBroken
+            ? "Bundle JSON broken: \(parseErrorMessage(bundleData!))"
+            : nil
 
-        if let data = bundleData, let specs = parseData(data), !specs.isEmpty {
-            // Bundle is newer — overwrite cache
+        // Bundle wins on ties (new build = fresh content); cache only wins if strictly newer (remote update)
+        if let data = bundleData, bundleVersion >= cachedVersion,
+           let specs = parseData(data), !specs.isEmpty {
             try? data.write(to: cachedFileURL)
             print("Loaded exercises from bundle (v\(bundleVersion)), updated cache")
             return (specs, nil)
+        }
+
+        if let data = cachedData, let specs = parseData(data), !specs.isEmpty {
+            print("Loaded exercises from cache (v\(cachedVersion))")
+            if let warning = bundleWarning {
+                print(warning)
+            }
+            return (specs, bundleWarning)
         }
 
         // Both failed — report which ones had parse errors
@@ -318,8 +334,12 @@ class ExerciseCatalog: ObservableObject {
         }
 
         let atomStrings = dict["atoms"] as? [String] ?? []
+        let simpleAtomStrings = dict["simpleatoms"] as? [String] ?? []
+        let rotateAtomStrings = dict["rotateatoms"] as? [String] ?? []
         let chordStrings = dict["chords"] as? [String] ?? []
         let atoms = atomStrings.compactMap { Atom(rawValue: $0) }
+        let simpleAtoms = simpleAtomStrings.compactMap { Atom(rawValue: $0) }
+        let rotateAtoms = rotateAtomStrings.compactMap { Atom(rawValue: $0) }
 
         let base = name.lowercased().replacingOccurrences(of: " ", with: "_")
         let count = nameCounts[base, default: 0]
@@ -357,6 +377,8 @@ class ExerciseCatalog: ObservableObject {
             name: name,
             symbol: symbol,
             atoms: atoms,
+            simpleAtoms: simpleAtoms,
+            rotateAtoms: rotateAtoms,
             chords: Set(chordStrings),
             params: params,
             notes: notes,

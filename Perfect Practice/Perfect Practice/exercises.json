@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 9,
   "exercises": [
     {
       "name": "Permutations",
@@ -17,6 +17,9 @@
       "name": "Surround middle 3",
       "symbol": "◎",
       "atoms": ["down"],
+      "simpleatoms": ["position"],
+      "max_position": 3,
+      "rotateatoms": ["notes"],
       "notes": [1, 3, 5],
       "chords": [
         "la_minor"
@@ -26,6 +29,9 @@
       "name": "Move middle 3",
       "symbol": "↕",
       "atoms": ["down"],
+      "simpleatoms": ["position"],
+      "max_position": 3,
+      "rotateatoms": ["notes"],
       "notes": [1, 3, 5],
       "chords": [
         "la_minor",
@@ -35,8 +41,10 @@
     },
     {
       "name": "Important Frame",
-      "notes": [1, 3, 5],
       "symbol": "★",
+      "simpleatoms": ["position"],
+      "rotateatoms": ["notes"],
+      "notes": [1, 3, 5],
       "max_position": 3,
       "chords": [
         "la_minor"
@@ -44,8 +52,10 @@
     },
     {
       "name": "Important Frame",
-      "notes": [1, 3, 5],
       "symbol": "★",
+      "simpleatoms": ["position"],
+      "rotateatoms": ["notes"],
+      "notes": [1, 3, 5],
       "max_position": 3,
       "chords": [
         "mi_dominant",
@@ -53,9 +63,11 @@
       ]
     },
     {
-      "name": "Treble Arpeggio",
+      "name": "TArpeggio",
       "symbol": "▲",
-      "atoms": ["position2"],
+      "simpleatoms": ["multiselect", "multiselect"],
+      "multiselect": [[1,2,3],["up","down"]],
+      "rotateatoms": ["notes", "position2"],
       "notes": [1, 3, 5],
       "max_position": 3,
       "chords": [
@@ -69,9 +81,11 @@
       ]
     },
     {
-      "name": "Treble 6",
+      "name": "TArpeggio 6",
       "symbol": "△",
-      "atoms": ["position2"],
+      "simpleatoms": ["multiselect", "multiselect"],
+      "multiselect": [[1,2,3],["up","down"]],
+      "rotateatoms": ["notes"],
       "notes": [1, 3, 5, "#6"],
       "max_position": 3,
       "chords": [
@@ -87,6 +101,9 @@
     {
       "name": "TChord",
       "symbol": "♦",
+      "simpleatoms": ["position2"],
+      "max_position": 3,
+      "rotateatoms": ["notes"],
       "notes": [1, 3, 5],
       "chords": [
         "la_minor", "re_minor", "mi_minor",
@@ -99,8 +116,64 @@
       ]
     },
     {
-      "name": "TChord 6",
-      "symbol": "◇",
+      "name": "BArpeggio",
+      "disabled": true,
+      "symbol": "▼",
+      "atoms": ["position2"],
+      "simpleatoms": [],
+      "rotateatoms": ["notes"],
+      "notes": [1, 3, 5],
+      "max_position": 3,
+      "chords": [
+        "la_minor", "re_minor", "mi_minor",
+        "do_major", "fa_major", "sol_major",
+        "mi_dominant", "re_dominant",
+        "mi7_dominant", "la_minor_dm", "re_minor_gm", "fa_major_bb",
+        "la7_dominant", "re7_dominant", "sol7_dominant",
+        "fa_minor",
+        "re_minor7", "do_major7", "fa_major7"
+      ]
+    },
+    {
+      "name": "BArpeggio 6",
+      "symbol": "▽",
+      "simpleatoms": ["multiselect", "multiselect"],
+      "multiselect": [[1,2,3],["up","down"]],
+      "rotateatoms": ["notes"],
+      "notes": [1, 3, 5, "#6"],
+      "max_position": 3,
+      "chords": [
+        "la_minor", "re_minor", "mi_minor",
+        "do_major", "fa_major", "sol_major",
+        "mi_dominant", "re_dominant",
+        "mi7_dominant", "la_minor_dm", "re_minor_gm", "fa_major_bb",
+        "la7_dominant", "re7_dominant", "sol7_dominant",
+        "fa_minor",
+        "re_minor7", "do_major7", "fa_major7"
+      ]
+    },
+    {
+      "name": "BChord",
+      "symbol": "◈",
+      "simpleatoms": ["position2"],
+      "max_position": 3,
+      "rotateatoms": ["notes"],
+      "notes": [1, 3, 5],
+      "chords": [
+        "la_minor", "re_minor", "mi_minor",
+        "do_major", "fa_major", "sol_major",
+        "mi_dominant", "re_dominant",
+        "mi7_dominant", "la_minor_dm", "re_minor_gm", "fa_major_bb",
+        "la7_dominant", "re7_dominant", "sol7_dominant",
+        "fa_minor",
+        "re_minor7", "do_major7", "fa_major7"
+      ]
+    },
+    {
+      "name": "BChord 6",
+      "symbol": "◊",
+      "simpleatoms": [],
+      "rotateatoms": ["notes"],
       "notes": [1, 3, 5, "#6"],
       "chords": [
         "la_minor", "re_minor", "mi_minor",
@@ -114,9 +187,12 @@
     },
     {
       "name": "Bass 6",
-      "symbol": "▽",
+      "symbol": "⬦",
+      "disabled": true,
       "atoms": ["multiselect", "multiselect"],
       "multiselect": [[1,2,3],["up","down"]],
+      "simpleatoms": [],
+      "rotateatoms": ["notes"],
       "notes": [1, 3, 5, "#6"],
       "chords": [
         "la_minor", "re_minor", "mi_minor",
@@ -132,6 +208,9 @@
       "name": "Full Arpeggio",
       "symbol": "◆",
       "atoms": ["position", "down"],
+      "simpleatoms": ["multiselect", "multiselect"],
+      "multiselect": [[1,2,3],["up","down"]],
+      "rotateatoms": ["notes"],
       "notes": [1, 3, 5],
       "max_position": 3,
       "chords": [
@@ -149,6 +228,8 @@
       "symbol": "⊙",
       "disabled": true,
       "atoms": ["down"],
+      "simpleatoms": [],
+      "rotateatoms": ["notes"],
       "notes": [1, 3, 5, "#6"],
       "chords": [
         "la_minor"
@@ -158,6 +239,8 @@
       "name": "Horizontal Triad",
       "symbol": "→",
       "atoms": ["down"],
+      "simpleatoms": [],
+      "rotateatoms": ["notes"],
       "notes": [1, 3, 5],
       "chords": [
         "la_minor", "re_minor", "mi_minor",
