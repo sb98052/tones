@@ -176,6 +176,7 @@ class PracticeEngine: ObservableObject {
 
     private func startWarmUpLoop() {
         playbackTask = Task { @MainActor in
+            var isFirstChord = true
             while state != .stopped {
                 guard let prog = progression else { break }
 
@@ -187,8 +188,10 @@ class PracticeEngine: ObservableObject {
                     let nextIndex = (i + 1) % prog.chords.count
                     nextChordName = prog.chords[nextIndex]
 
-                    // Rotate exercises (skip on first chord - already set in start())
-                    if i > 0 {
+                    // Rotate exercises (skip on very first chord - already set in start())
+                    if isFirstChord {
+                        isFirstChord = false
+                    } else {
                         currentExercise = nextExercise
                         nextExercise = catalog.generateForChord(nextChordName, enabled: enabledExercises, rotate: rotate)
                     }
@@ -222,6 +225,7 @@ class PracticeEngine: ObservableObject {
                 if Task.isCancelled { return }
             }
 
+            var isFirstChord = true
             while state != .stopped {
                 guard let prog = progression else { break }
 
@@ -239,8 +243,10 @@ class PracticeEngine: ObservableObject {
                     let nextIndex = (i + 1) % prog.chords.count
                     nextChordName = prog.chords[nextIndex]
 
-                    // Rotate exercises (skip on first chord - already set in start())
-                    if i > 0 {
+                    // Rotate exercises (skip on very first chord - already set in start())
+                    if isFirstChord {
+                        isFirstChord = false
+                    } else {
                         currentExercise = nextExercise
                         nextExercise = catalog.generateForChord(nextChordName, enabled: enabledExercises, rotate: rotate)
                     }

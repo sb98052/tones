@@ -130,6 +130,16 @@ struct ExerciseSpec: Identifiable {
             allLines.append(contentsOf: atom.generate(params: params, used: &used))
         }
 
+        // If only one multiselect, fold its value into the title suffix
+        let multiselectCount = effectiveAtoms.filter { $0 == .multiselect }.count
+        if multiselectCount == 1 {
+            allLines = allLines.map { line in
+                line.label == "First"
+                    ? ExerciseLine(label: "_suffix", value: line.value, emphasis: line.emphasis)
+                    : line
+            }
+        }
+
         // Extract _suffix lines and fold into title
         let suffixParts = allLines.filter { $0.label == "_suffix" }.map { $0.value }
         let displayLines = allLines.filter { $0.label != "_suffix" }
