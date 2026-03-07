@@ -41,6 +41,7 @@ class PracticeEngine: ObservableObject {
     private var metronomePlayer: AVAudioPlayer?
     private let catalog = ExerciseCatalog.shared
     private var advanceRequested = false
+    private var lastAdvanceTime: Date = .distantPast
 
     private var beatDuration: TimeInterval {
         60.0 / bpm
@@ -90,6 +91,9 @@ class PracticeEngine: ObservableObject {
     }
 
     func advance() {
+        let now = Date()
+        guard now.timeIntervalSince(lastAdvanceTime) >= 1.0 else { return }
+        lastAdvanceTime = now
         advanceRequested = true
     }
 
