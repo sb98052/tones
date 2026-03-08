@@ -52,6 +52,7 @@ struct ContentView: View {
     @State private var enabledExercises: Set<String> = Set(ExerciseCatalog.shared.exercises.filter { !$0.disabled }.map { $0.id })
     @State private var warmUp = true
     @State private var rotate = true
+    @State private var playMode = false
     @ObservedObject private var catalog = ExerciseCatalog.shared
 
     private var progressionKeys: [String] {
@@ -111,6 +112,7 @@ struct ContentView: View {
                     engine.enabledExercises = enabledExercises
                     engine.warmUp = true
                     engine.rotate = rotate
+                    engine.playMode = false
                     engine.debugMode = true
                     engine.start(progressionKey: selectedProgression)
                 }
@@ -164,6 +166,10 @@ struct ContentView: View {
             Toggle("Rotate", isOn: $rotate)
                 .padding(.horizontal)
 
+            // Play (ear training) toggle
+            Toggle("Play", isOn: $playMode)
+                .padding(.horizontal)
+
             Spacer()
 
             // Play button
@@ -173,6 +179,7 @@ struct ContentView: View {
                 engine.enabledExercises = enabledExercises
                 engine.warmUp = warmUp
                 engine.rotate = rotate
+                engine.playMode = playMode
                 engine.debugMode = false
                 engine.start(progressionKey: selectedProgression)
             }) {

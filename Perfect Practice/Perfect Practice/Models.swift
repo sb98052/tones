@@ -103,6 +103,95 @@ func displayName(for chord: String) -> String {
     chordDisplayNames[chord] ?? chord
 }
 
+// MARK: - Solfege-to-Semitone Mapping (for audio playback)
+
+let solfegeToSemitone: [String: Int] = [
+    "do": 0, "di": 1, "ra": 1, "re": 2, "ri": 3, "me": 3, "mi": 4, "fa": 5,
+    "fi": 6, "se": 6, "sol": 7, "si": 8, "le": 8, "la": 9, "li": 10, "te": 10, "ti": 11
+]
+
+let noteToSemitone: [String: Int] = [
+    "C": 0, "C#": 1, "Db": 1, "D": 2, "D#": 3, "Eb": 3, "E": 4, "Fb": 4, "E#": 5,
+    "F": 5, "F#": 6, "Gb": 6, "G": 7, "G#": 8, "Ab": 8, "A": 9, "A#": 10, "Bb": 10,
+    "B": 11, "Cb": 11
+]
+
+// Canonical note names matching our MP3 file naming (uses flats, not sharps)
+private let semitoneToFileName: [Int: String] = [
+    0: "C", 1: "Db", 2: "D", 3: "Eb", 4: "E", 5: "F",
+    6: "Gb", 7: "G", 8: "Ab", 9: "A", 10: "Bb", 11: "B"
+]
+
+let solfegePronunciation: [String: String] = [
+    "do": "doe", "re": "ray", "mi": "me", "fa": "far", "sol": "so", "la": "la", "ti": "tea",
+    "di": "dee", "ra": "rah", "ri": "ree", "me": "may", "fi": "fee", "se": "say",
+    "si": "see", "le": "lay", "li": "lee", "te": "tay"
+]
+
+// MARK: - Key Signatures
+
+let keySignatures: [[String]] = [
+    ["C", "D", "E", "F", "G", "A", "B"],
+    ["G", "A", "B", "C", "D", "E", "F#"],
+    ["F", "G", "A", "Bb", "C", "D", "E"],
+    ["D", "E", "F#", "G", "A", "B", "C#"],
+    ["A", "B", "C#", "D", "E", "F#", "G#"],
+    ["E", "F#", "G#", "A", "B", "C#", "D#"],
+    ["B", "C#", "D#", "E", "F#", "G#", "A#"],
+    ["F#", "G#", "A#", "B", "C#", "D#", "E#"],
+    ["Bb", "C", "D", "Eb", "F", "G", "A"],
+    ["Eb", "F", "G", "Ab", "Bb", "C", "D"],
+    ["Ab", "Bb", "C", "Db", "Eb", "F", "G"],
+    ["Db", "Eb", "F", "Gb", "Ab", "Bb", "C"],
+    ["Gb", "Ab", "Bb", "Cb", "Db", "Eb", "F"],
+]
+
+// MARK: - Key
+
+struct Key {
+    let signature: [String]
+    let mode: Mode
+
+    /// Convert solfege to a playable note filename (e.g. "A3", "Eb4")
+    func solfegeToNote(_ solfege: String, octave: Int) -> String {
+        let semiOffset = solfegeToSemitone[solfege] ?? 0
+        let baseNote = mode == .minor ? signature[5] : signature[0]
+        let baseSemi = noteToSemitone[baseNote] ?? 0
+
+        let targetSemi: Int
+        if mode == .minor {
+            targetSemi = (baseSemi + semiOffset - 9 + 12) % 12
+        } else {
+            targetSemi = (baseSemi + semiOffset) % 12
+        }
+
+        let noteName = semitoneToFileName[targetSemi] ?? "C"
+        return "\(noteName)\(octave)"
+    }
+
+    /// Absolute semitone value for a note (note name + octave)
+    static func absoluteSemitone(_ noteFile: String) -> Int {
+        // Parse "Eb4" → note="Eb", octave=4
+        var note = ""
+        var octaveStr = ""
+        for ch in noteFile {
+            if ch.isNumber || (ch == "-" && octaveStr.isEmpty) {
+                octaveStr.append(ch)
+            } else {
+                note.append(ch)
+            }
+        }
+        let octave = Int(octaveStr) ?? 4
+        let semi = noteToSemitone[note] ?? 0
+        return octave * 12 + semi
+    }
+
+    static func random(for mode: Mode) -> Key {
+        let sig = keySignatures.randomElement()!
+        return Key(signature: sig, mode: mode)
+    }
+}
+
 // MARK: - Chord Scales (degree 1-7 as solfege for each chord key)
 
 let chordScales: [String: [String]] = [

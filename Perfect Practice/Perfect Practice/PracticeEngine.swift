@@ -33,6 +33,7 @@ class PracticeEngine: ObservableObject {
     var warmUp: Bool = false
     var rotate: Bool = false
     var debugMode: Bool = false
+    var playMode: Bool = false
 
     // MARK: - Private Properties
 
@@ -40,6 +41,8 @@ class PracticeEngine: ObservableObject {
     private var playbackTask: Task<Void, Never>?
     private var metronomePlayer: AVAudioPlayer?
     private let catalog = ExerciseCatalog.shared
+    private let audioManager = AudioManager.shared
+    private let speechManager = SpeechManager.shared
     private var advanceRequested = false
     private var lastAdvanceTime: Date = .distantPast
 
@@ -75,6 +78,8 @@ class PracticeEngine: ObservableObject {
         playbackTask = nil
         metronomePlayer?.stop()
         metronomePlayer = nil
+        audioManager.stopAll()
+        speechManager.stop()
         currentExercise = nil
         nextExercise = nil
         currentChordName = ""
@@ -138,10 +143,115 @@ class PracticeEngine: ObservableObject {
     private func startPlaybackLoop() {
         if debugMode {
             startDebugLoop()
+        } else if playMode {
+            startPlayLoop()
         } else if warmUp {
             startWarmUpLoop()
         } else {
             startMetronomeLoop()
+        }
+    }
+
+    /// Convert solfege notes to playable note filenames using the given key, with ascending octaves
+    private func solfegeToNoteNames(_ solfegeNotes: [String], key: Key) -> [String] {
+        guard !solfegeNotes.isEmpty else { return [] }
+
+        var result: [String] = []
+        var currentOctave = 3
+        var lastAbsolute = -1
+
+        for solfege in solfegeNotes {
+            let note = key.solfegeToNote(solfege, octave: currentOctave)
+            let absolute = Key.absoluteSemitone(note)
+
+            // If this note isn't higher than the last, bump octave
+            if absolute <= lastAbsolute {
+                currentOctave += 1
+                let bumped = key.solfegeToNote(solfege, octave: currentOctave)
+                result.append(bumped)
+                lastAbsolute = Key.absoluteSemitone(bumped)
+            } else {
+                result.append(note)
+                lastAbsolute = absolute
+            }
+        }
+        return result
+    }
+
+    private func startPlayLoop() {
+        playbackTask = Task { @MainActor in
+            guard let prog = progression else { return }
+
+            let key = Key.random(for: prog.mode)
+            print("Play mode — key: \(key.signature[0]) \(prog.mode.rawValue)")
+
+            while state != .stopped {
+                for i in 0..<prog.chords.count {
+                    guard state != .stopped else { return }
+
+                    // Update chord info
+                    currentChordName = prog.chords[i]
+                    let nextIndex = (i + 1) % prog.chords.count
+                    nextChordName = prog.chords[nextIndex]
+
+                    // Generate exercise (always with rotate for play mode)
+                    currentExercise = catalog.generateForChord(
+                        currentChordName, enabled: enabledExercises, rotate: true
+                    )
+                    nextExercise = catalog.generateForChord(
+                        nextChordName, enabled: enabledExercises, rotate: true
+                    )
+
+                    guard let exercise = currentExercise,
+                          !exercise.solfegeNotes.isEmpty else {
+                        // Skip exercises without notes
+                        try? await Task.sleep(nanoseconds: 500_000_000)
+                        if Task.isCancelled { return }
+                        continue
+                    }
+
+                    // Convert solfege to playable note names
+                    let noteNames = solfegeToNoteNames(exercise.solfegeNotes, key: key)
+
+                    // Play the notes
+                    if exercise.playstyle == "chord" {
+                        audioManager.playChord(notes: noteNames)
+                        // Wait for chord to ring
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    } else {
+                        audioManager.playArpeggio(notes: noteNames)
+                        // Wait for arpeggio to complete
+                        let duration = audioManager.arpeggioDuration(noteCount: noteNames.count)
+                        let nanos = UInt64(duration * 1_000_000_000)
+                        try? await Task.sleep(nanoseconds: nanos)
+                    }
+
+                    guard state != .stopped else { return }
+                    if Task.isCancelled { return }
+
+                    // Brief pause before announcement
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    guard state != .stopped else { return }
+
+                    // Announce solfege notes using pronunciation
+                    let announcement = exercise.solfegeNotes.map {
+                        solfegePronunciation[$0] ?? $0
+                    }.joined(separator: ", ")
+
+                    await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                        speechManager.speak(announcement) {
+                            continuation.resume()
+                        }
+                    }
+
+                    guard state != .stopped else { return }
+                    if Task.isCancelled { return }
+
+                    // Pause before next exercise
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    if Task.isCancelled { return }
+                }
+            }
         }
     }
 

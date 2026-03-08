@@ -23,6 +23,7 @@ struct Exercise {
     let displayLines: [ExerciseLine]
     let solfegeNotes: [String]
     let startNoteIndex: Int?
+    let playstyle: String  // "arpeggio" or "chord"
 }
 
 // MARK: - Atom Parameters
@@ -119,6 +120,7 @@ struct ExerciseSpec: Identifiable {
     let chords: Set<String>
     let params: AtomParams
     let notes: [String]  // "1"-"7" for diatonic, "#6" for raised, "b3" for lowered
+    let playstyle: String  // "arpeggio" or "chord"
     let disabled: Bool
 
     func generate(chordKey: String = "", rotate: Bool = false) -> Exercise {
@@ -169,7 +171,8 @@ struct ExerciseSpec: Identifiable {
             titleSuffix: titleSuffix,
             displayLines: displayLines,
             solfegeNotes: solfege,
-            startNoteIndex: startIndex
+            startNoteIndex: startIndex,
+            playstyle: playstyle
         )
     }
 
@@ -380,6 +383,7 @@ class ExerciseCatalog: ObservableObject {
             notes = []
         }
         let symbol = dict["symbol"] as? String ?? "●"
+        let playstyle = dict["playstyle"] as? String ?? "arpeggio"
         let disabled = dict["disabled"] as? Bool ?? false
 
         return ExerciseSpec(
@@ -392,6 +396,7 @@ class ExerciseCatalog: ObservableObject {
             chords: Set(chordStrings),
             params: params,
             notes: notes,
+            playstyle: playstyle,
             disabled: disabled
         )
     }

@@ -3,20 +3,131 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 56;
 	objects = {
+
+/* Begin PBXBuildFile section */
+		AA00000000000000000000A1 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B1 /* AudioManager.swift */; };
+		AA00000000000000000000A2 /* SpeechManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B2 /* SpeechManager.swift */; };
+		AA00000000000000000000A3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B3 /* ContentView.swift */; };
+		AA00000000000000000000A4 /* Perfect_PracticeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B4 /* Perfect_PracticeApp.swift */; };
+		AA00000000000000000000A5 /* Exercises.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B5 /* Exercises.swift */; };
+		AA00000000000000000000A6 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B6 /* Models.swift */; };
+		AA00000000000000000000A7 /* PracticeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B7 /* PracticeEngine.swift */; };
+		AA00000000000000000000A8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B8 /* Assets.xcassets */; };
+		AA00000000000000000000A9 /* exercises.json in Resources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B9 /* exercises.json */; };
+		AA00000000000000000000AA /* metronome.wav in Resources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000BA /* metronome.wav */; };
+		AA0000000000000000000101 /* A2.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000201 /* A2.mp3 */; };
+		AA0000000000000000000102 /* A3.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000202 /* A3.mp3 */; };
+		AA0000000000000000000103 /* A4.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000203 /* A4.mp3 */; };
+		AA0000000000000000000104 /* A5.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000204 /* A5.mp3 */; };
+		AA0000000000000000000105 /* Ab2.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000205 /* Ab2.mp3 */; };
+		AA0000000000000000000106 /* Ab3.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000206 /* Ab3.mp3 */; };
+		AA0000000000000000000107 /* Ab4.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000207 /* Ab4.mp3 */; };
+		AA0000000000000000000108 /* Ab5.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000208 /* Ab5.mp3 */; };
+		AA0000000000000000000109 /* B2.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000209 /* B2.mp3 */; };
+		AA000000000000000000010A /* B3.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000020A /* B3.mp3 */; };
+		AA000000000000000000010B /* B4.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000020B /* B4.mp3 */; };
+		AA000000000000000000010C /* B5.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000020C /* B5.mp3 */; };
+		AA000000000000000000010D /* Bb2.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000020D /* Bb2.mp3 */; };
+		AA000000000000000000010E /* Bb3.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000020E /* Bb3.mp3 */; };
+		AA000000000000000000010F /* Bb4.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000020F /* Bb4.mp3 */; };
+		AA0000000000000000000110 /* Bb5.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000210 /* Bb5.mp3 */; };
+		AA0000000000000000000111 /* C2.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000211 /* C2.mp3 */; };
+		AA0000000000000000000112 /* C3.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000212 /* C3.mp3 */; };
+		AA0000000000000000000113 /* C4.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000213 /* C4.mp3 */; };
+		AA0000000000000000000114 /* C5.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000214 /* C5.mp3 */; };
+		AA0000000000000000000115 /* D2.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000215 /* D2.mp3 */; };
+		AA0000000000000000000116 /* D3.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000216 /* D3.mp3 */; };
+		AA0000000000000000000117 /* D4.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000217 /* D4.mp3 */; };
+		AA0000000000000000000118 /* D5.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000218 /* D5.mp3 */; };
+		AA0000000000000000000119 /* Db2.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000219 /* Db2.mp3 */; };
+		AA000000000000000000011A /* Db3.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000021A /* Db3.mp3 */; };
+		AA000000000000000000011B /* Db4.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000021B /* Db4.mp3 */; };
+		AA000000000000000000011C /* Db5.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000021C /* Db5.mp3 */; };
+		AA000000000000000000011D /* E2.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000021D /* E2.mp3 */; };
+		AA000000000000000000011E /* E3.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000021E /* E3.mp3 */; };
+		AA000000000000000000011F /* E4.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000021F /* E4.mp3 */; };
+		AA0000000000000000000120 /* E5.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000220 /* E5.mp3 */; };
+		AA0000000000000000000121 /* Eb2.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000221 /* Eb2.mp3 */; };
+		AA0000000000000000000122 /* Eb3.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000222 /* Eb3.mp3 */; };
+		AA0000000000000000000123 /* Eb4.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000223 /* Eb4.mp3 */; };
+		AA0000000000000000000124 /* Eb5.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000224 /* Eb5.mp3 */; };
+		AA0000000000000000000125 /* F2.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000225 /* F2.mp3 */; };
+		AA0000000000000000000126 /* F3.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000226 /* F3.mp3 */; };
+		AA0000000000000000000127 /* F4.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000227 /* F4.mp3 */; };
+		AA0000000000000000000128 /* F5.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000228 /* F5.mp3 */; };
+		AA0000000000000000000129 /* G2.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000229 /* G2.mp3 */; };
+		AA000000000000000000012A /* G3.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000022A /* G3.mp3 */; };
+		AA000000000000000000012B /* G4.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000022B /* G4.mp3 */; };
+		AA000000000000000000012C /* G5.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000022C /* G5.mp3 */; };
+		AA000000000000000000012D /* Gb2.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000022D /* Gb2.mp3 */; };
+		AA000000000000000000012E /* Gb3.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000022E /* Gb3.mp3 */; };
+		AA000000000000000000012F /* Gb4.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000022F /* Gb4.mp3 */; };
+		AA0000000000000000000130 /* Gb5.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000230 /* Gb5.mp3 */; };
+/* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		2FEDF1442F4777E100163576 /* Perfect Practice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Perfect Practice.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA00000000000000000000B1 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
+		AA00000000000000000000B2 /* SpeechManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechManager.swift; sourceTree = "<group>"; };
+		AA00000000000000000000B3 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		AA00000000000000000000B4 /* Perfect_PracticeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Perfect_PracticeApp.swift; sourceTree = "<group>"; };
+		AA00000000000000000000B5 /* Exercises.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Exercises.swift; sourceTree = "<group>"; };
+		AA00000000000000000000B6 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		AA00000000000000000000B7 /* PracticeEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeEngine.swift; sourceTree = "<group>"; };
+		AA00000000000000000000B8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AA00000000000000000000B9 /* exercises.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = exercises.json; sourceTree = "<group>"; };
+		AA00000000000000000000BA /* metronome.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = metronome.wav; sourceTree = "<group>"; };
+		AA0000000000000000000201 /* A2.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = A2.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000202 /* A3.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = A3.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000203 /* A4.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = A4.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000204 /* A5.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = A5.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000205 /* Ab2.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Ab2.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000206 /* Ab3.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Ab3.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000207 /* Ab4.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Ab4.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000208 /* Ab5.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Ab5.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000209 /* B2.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = B2.mp3; sourceTree = "<group>"; };
+		AA000000000000000000020A /* B3.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = B3.mp3; sourceTree = "<group>"; };
+		AA000000000000000000020B /* B4.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = B4.mp3; sourceTree = "<group>"; };
+		AA000000000000000000020C /* B5.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = B5.mp3; sourceTree = "<group>"; };
+		AA000000000000000000020D /* Bb2.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Bb2.mp3; sourceTree = "<group>"; };
+		AA000000000000000000020E /* Bb3.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Bb3.mp3; sourceTree = "<group>"; };
+		AA000000000000000000020F /* Bb4.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Bb4.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000210 /* Bb5.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Bb5.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000211 /* C2.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = C2.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000212 /* C3.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = C3.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000213 /* C4.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = C4.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000214 /* C5.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = C5.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000215 /* D2.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = D2.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000216 /* D3.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = D3.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000217 /* D4.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = D4.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000218 /* D5.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = D5.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000219 /* Db2.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Db2.mp3; sourceTree = "<group>"; };
+		AA000000000000000000021A /* Db3.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Db3.mp3; sourceTree = "<group>"; };
+		AA000000000000000000021B /* Db4.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Db4.mp3; sourceTree = "<group>"; };
+		AA000000000000000000021C /* Db5.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Db5.mp3; sourceTree = "<group>"; };
+		AA000000000000000000021D /* E2.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = E2.mp3; sourceTree = "<group>"; };
+		AA000000000000000000021E /* E3.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = E3.mp3; sourceTree = "<group>"; };
+		AA000000000000000000021F /* E4.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = E4.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000220 /* E5.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = E5.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000221 /* Eb2.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Eb2.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000222 /* Eb3.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Eb3.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000223 /* Eb4.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Eb4.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000224 /* Eb5.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Eb5.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000225 /* F2.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = F2.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000226 /* F3.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = F3.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000227 /* F4.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = F4.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000228 /* F5.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = F5.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000229 /* G2.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = G2.mp3; sourceTree = "<group>"; };
+		AA000000000000000000022A /* G3.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = G3.mp3; sourceTree = "<group>"; };
+		AA000000000000000000022B /* G4.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = G4.mp3; sourceTree = "<group>"; };
+		AA000000000000000000022C /* G5.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = G5.mp3; sourceTree = "<group>"; };
+		AA000000000000000000022D /* Gb2.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Gb2.mp3; sourceTree = "<group>"; };
+		AA000000000000000000022E /* Gb3.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Gb3.mp3; sourceTree = "<group>"; };
+		AA000000000000000000022F /* Gb4.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Gb4.mp3; sourceTree = "<group>"; };
+		AA0000000000000000000230 /* Gb5.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Gb5.mp3; sourceTree = "<group>"; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		2FEDF1462F4777E100163576 /* Perfect Practice */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Perfect Practice";
-			sourceTree = "<group>";
-		};
-/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		2FEDF1412F4777E100163576 /* Frameworks */ = {
@@ -32,7 +143,7 @@
 		2FEDF13B2F4777E100163576 = {
 			isa = PBXGroup;
 			children = (
-				2FEDF1462F4777E100163576 /* Perfect Practice */,
+				AA0000000000000000000300 /* Perfect Practice */,
 				2FEDF1452F4777E100163576 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -43,6 +154,79 @@
 				2FEDF1442F4777E100163576 /* Perfect Practice.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000300 /* Perfect Practice */ = {
+			isa = PBXGroup;
+			children = (
+				AA00000000000000000000B4 /* Perfect_PracticeApp.swift */,
+				AA00000000000000000000B3 /* ContentView.swift */,
+				AA00000000000000000000B1 /* AudioManager.swift */,
+				AA00000000000000000000B2 /* SpeechManager.swift */,
+				AA00000000000000000000B5 /* Exercises.swift */,
+				AA00000000000000000000B6 /* Models.swift */,
+				AA00000000000000000000B7 /* PracticeEngine.swift */,
+				AA00000000000000000000B8 /* Assets.xcassets */,
+				AA00000000000000000000B9 /* exercises.json */,
+				AA00000000000000000000BA /* metronome.wav */,
+				AA0000000000000000000301 /* piano */,
+			);
+			path = "Perfect Practice";
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000301 /* piano */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000201 /* A2.mp3 */,
+				AA0000000000000000000202 /* A3.mp3 */,
+				AA0000000000000000000203 /* A4.mp3 */,
+				AA0000000000000000000204 /* A5.mp3 */,
+				AA0000000000000000000205 /* Ab2.mp3 */,
+				AA0000000000000000000206 /* Ab3.mp3 */,
+				AA0000000000000000000207 /* Ab4.mp3 */,
+				AA0000000000000000000208 /* Ab5.mp3 */,
+				AA0000000000000000000209 /* B2.mp3 */,
+				AA000000000000000000020A /* B3.mp3 */,
+				AA000000000000000000020B /* B4.mp3 */,
+				AA000000000000000000020C /* B5.mp3 */,
+				AA000000000000000000020D /* Bb2.mp3 */,
+				AA000000000000000000020E /* Bb3.mp3 */,
+				AA000000000000000000020F /* Bb4.mp3 */,
+				AA0000000000000000000210 /* Bb5.mp3 */,
+				AA0000000000000000000211 /* C2.mp3 */,
+				AA0000000000000000000212 /* C3.mp3 */,
+				AA0000000000000000000213 /* C4.mp3 */,
+				AA0000000000000000000214 /* C5.mp3 */,
+				AA0000000000000000000215 /* D2.mp3 */,
+				AA0000000000000000000216 /* D3.mp3 */,
+				AA0000000000000000000217 /* D4.mp3 */,
+				AA0000000000000000000218 /* D5.mp3 */,
+				AA0000000000000000000219 /* Db2.mp3 */,
+				AA000000000000000000021A /* Db3.mp3 */,
+				AA000000000000000000021B /* Db4.mp3 */,
+				AA000000000000000000021C /* Db5.mp3 */,
+				AA000000000000000000021D /* E2.mp3 */,
+				AA000000000000000000021E /* E3.mp3 */,
+				AA000000000000000000021F /* E4.mp3 */,
+				AA0000000000000000000220 /* E5.mp3 */,
+				AA0000000000000000000221 /* Eb2.mp3 */,
+				AA0000000000000000000222 /* Eb3.mp3 */,
+				AA0000000000000000000223 /* Eb4.mp3 */,
+				AA0000000000000000000224 /* Eb5.mp3 */,
+				AA0000000000000000000225 /* F2.mp3 */,
+				AA0000000000000000000226 /* F3.mp3 */,
+				AA0000000000000000000227 /* F4.mp3 */,
+				AA0000000000000000000228 /* F5.mp3 */,
+				AA0000000000000000000229 /* G2.mp3 */,
+				AA000000000000000000022A /* G3.mp3 */,
+				AA000000000000000000022B /* G4.mp3 */,
+				AA000000000000000000022C /* G5.mp3 */,
+				AA000000000000000000022D /* Gb2.mp3 */,
+				AA000000000000000000022E /* Gb3.mp3 */,
+				AA000000000000000000022F /* Gb4.mp3 */,
+				AA0000000000000000000230 /* Gb5.mp3 */,
+			);
+			path = piano;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -59,9 +243,6 @@
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				2FEDF1462F4777E100163576 /* Perfect Practice */,
 			);
 			name = "Perfect Practice";
 			packageProductDependencies = (
@@ -109,6 +290,57 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA00000000000000000000A8 /* Assets.xcassets in Resources */,
+				AA00000000000000000000A9 /* exercises.json in Resources */,
+				AA00000000000000000000AA /* metronome.wav in Resources */,
+				AA0000000000000000000101 /* A2.mp3 in Resources */,
+				AA0000000000000000000102 /* A3.mp3 in Resources */,
+				AA0000000000000000000103 /* A4.mp3 in Resources */,
+				AA0000000000000000000104 /* A5.mp3 in Resources */,
+				AA0000000000000000000105 /* Ab2.mp3 in Resources */,
+				AA0000000000000000000106 /* Ab3.mp3 in Resources */,
+				AA0000000000000000000107 /* Ab4.mp3 in Resources */,
+				AA0000000000000000000108 /* Ab5.mp3 in Resources */,
+				AA0000000000000000000109 /* B2.mp3 in Resources */,
+				AA000000000000000000010A /* B3.mp3 in Resources */,
+				AA000000000000000000010B /* B4.mp3 in Resources */,
+				AA000000000000000000010C /* B5.mp3 in Resources */,
+				AA000000000000000000010D /* Bb2.mp3 in Resources */,
+				AA000000000000000000010E /* Bb3.mp3 in Resources */,
+				AA000000000000000000010F /* Bb4.mp3 in Resources */,
+				AA0000000000000000000110 /* Bb5.mp3 in Resources */,
+				AA0000000000000000000111 /* C2.mp3 in Resources */,
+				AA0000000000000000000112 /* C3.mp3 in Resources */,
+				AA0000000000000000000113 /* C4.mp3 in Resources */,
+				AA0000000000000000000114 /* C5.mp3 in Resources */,
+				AA0000000000000000000115 /* D2.mp3 in Resources */,
+				AA0000000000000000000116 /* D3.mp3 in Resources */,
+				AA0000000000000000000117 /* D4.mp3 in Resources */,
+				AA0000000000000000000118 /* D5.mp3 in Resources */,
+				AA0000000000000000000119 /* Db2.mp3 in Resources */,
+				AA000000000000000000011A /* Db3.mp3 in Resources */,
+				AA000000000000000000011B /* Db4.mp3 in Resources */,
+				AA000000000000000000011C /* Db5.mp3 in Resources */,
+				AA000000000000000000011D /* E2.mp3 in Resources */,
+				AA000000000000000000011E /* E3.mp3 in Resources */,
+				AA000000000000000000011F /* E4.mp3 in Resources */,
+				AA0000000000000000000120 /* E5.mp3 in Resources */,
+				AA0000000000000000000121 /* Eb2.mp3 in Resources */,
+				AA0000000000000000000122 /* Eb3.mp3 in Resources */,
+				AA0000000000000000000123 /* Eb4.mp3 in Resources */,
+				AA0000000000000000000124 /* Eb5.mp3 in Resources */,
+				AA0000000000000000000125 /* F2.mp3 in Resources */,
+				AA0000000000000000000126 /* F3.mp3 in Resources */,
+				AA0000000000000000000127 /* F4.mp3 in Resources */,
+				AA0000000000000000000128 /* F5.mp3 in Resources */,
+				AA0000000000000000000129 /* G2.mp3 in Resources */,
+				AA000000000000000000012A /* G3.mp3 in Resources */,
+				AA000000000000000000012B /* G4.mp3 in Resources */,
+				AA000000000000000000012C /* G5.mp3 in Resources */,
+				AA000000000000000000012D /* Gb2.mp3 in Resources */,
+				AA000000000000000000012E /* Gb3.mp3 in Resources */,
+				AA000000000000000000012F /* Gb4.mp3 in Resources */,
+				AA0000000000000000000130 /* Gb5.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +351,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA00000000000000000000A4 /* Perfect_PracticeApp.swift in Sources */,
+				AA00000000000000000000A3 /* ContentView.swift in Sources */,
+				AA00000000000000000000A1 /* AudioManager.swift in Sources */,
+				AA00000000000000000000A2 /* SpeechManager.swift in Sources */,
+				AA00000000000000000000A5 /* Exercises.swift in Sources */,
+				AA00000000000000000000A6 /* Models.swift in Sources */,
+				AA00000000000000000000A7 /* PracticeEngine.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -256,6 +495,7 @@
 				DEVELOPMENT_TEAM = 5L9XFLYL4X;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Perfect-Practice-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -288,6 +528,7 @@
 				DEVELOPMENT_TEAM = 5L9XFLYL4X;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Perfect-Practice-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
