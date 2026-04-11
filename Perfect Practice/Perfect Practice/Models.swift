@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 // MARK: - Mode
 
@@ -101,6 +102,104 @@ let chordDisplayNames: [String: String] = [
 
 func displayName(for chord: String) -> String {
     chordDisplayNames[chord] ?? chord
+}
+
+// MARK: - Chord Degree Helpers (for graphic display)
+
+let solfegeToDegree: [String: Int] = [
+    "do": 1, "re": 2, "mi": 3, "fa": 4, "sol": 5, "la": 6, "ti": 7
+]
+
+enum ChordQuality: String {
+    case minor, major, dominant
+}
+
+func chordRoot(_ chordKey: String) -> String {
+    String(chordKey.split(separator: "_")[0]).replacingOccurrences(of: "7", with: "")
+}
+
+func chordQualityFrom(_ chordKey: String) -> ChordQuality {
+    if chordKey.contains("dominant") { return .dominant }
+    if chordKey.contains("major") { return .major }
+    return .minor
+}
+
+// MARK: - Per-Chord Color Scheme
+
+struct ChordStyle {
+    let color: Color
+    let dashed: Bool
+}
+
+/// Build a deterministic color map for all unique chords in a progression.
+/// Same progression always produces the same map.
+func chordStyleMap(for progression: Progression) -> [String: ChordStyle] {
+    // Hue ranges (0-1 scale): dominant = red third, major = green third, minor = blue third
+    // Tighter hue ranges to avoid bleed into adjacent quality zones
+    let hueRanges: [ChordQuality: (start: Double, end: Double)] = [
+        .dominant: (0.02, 0.28),   // ~7°–100°  (reds → oranges → yellows)
+        .major:    (0.35, 0.52),   // ~126°–187° (greens → teals)
+        .minor:    (0.55, 0.78),   // ~198°–280° (blues → purples)
+    ]
+
+    // Get unique chords and group by quality
+    let unique = Array(Set(progression.chords))
+    var groups: [ChordQuality: [String]] = [.minor: [], .major: [], .dominant: []]
+    for chord in unique {
+        let q = chordQualityFrom(chord)
+        groups[q, default: []].append(chord)
+    }
+    // Sort each group alphabetically for deterministic ordering
+    for q in groups.keys {
+        groups[q]?.sort()
+    }
+
+    var map: [String: ChordStyle] = [:]
+
+    for (quality, chords) in groups {
+        guard !chords.isEmpty else { continue }
+        let range = hueRanges[quality]!
+        let span = range.end - range.start
+        // Pad 10% on each side so colors don't sit at the boundary
+        let pad = span * 0.1
+        let usable = span - 2 * pad
+        let step = chords.count > 1 ? usable / Double(chords.count - 1) : 0
+
+        for (i, chord) in chords.enumerated() {
+            let hue = range.start + pad + (chords.count > 1 ? step * Double(i) : usable / 2)
+            let color = Color(hue: hue, saturation: 0.7, brightness: 0.85)
+            let dashed = i % 2 == 1  // alternate: first solid, second dashed, etc.
+            map[chord] = ChordStyle(color: color, dashed: dashed)
+        }
+    }
+
+    return map
+}
+
+// MARK: - Key of the Day
+
+/// Deterministic key for any given date. Same date always returns the same key.
+func keyOfTheDay(date: Date = Date()) -> (name: String, key: Key) {
+    // Fixed seed — never change this
+    let seed: UInt64 = 0xA77D_1E42_B39C_F015
+
+    // Days since reference date (Jan 1, 2000)
+    let ref = Calendar.current.date(from: DateComponents(year: 2000, month: 1, day: 1))!
+    let dayIndex = Calendar.current.dateComponents([.day], from: ref, to: date).day ?? 0
+
+    // Multiplicative hash to scramble sequence
+    let hash = seed &* UInt64(bitPattern: Int64(dayIndex) &* 2654435761)
+    let n = Int(hash >> 16) // drop low bits
+
+    // Pick key signature and mode
+    let sigIndex = ((n % keySignatures.count) + keySignatures.count) % keySignatures.count
+    let modeIndex = ((n / keySignatures.count) % 2 + 2) % 2
+    let mode: Mode = modeIndex == 0 ? .minor : .major
+    let sig = keySignatures[sigIndex]
+    let key = Key(signature: sig, mode: mode)
+
+    let tonic = mode == .minor ? sig[5] : sig[0]
+    return (name: tonic, key: key)
 }
 
 // MARK: - Solfege-to-Semitone Mapping (for audio playback)

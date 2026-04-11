@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# Xcode user state
+*.xcuserstate
+
+# Python
+pyvenv.cfg
+tones/
+__pycache__/
+
+# Source piano samples (app uses copies in Perfect Practice/piano/)
+piano-mp3/

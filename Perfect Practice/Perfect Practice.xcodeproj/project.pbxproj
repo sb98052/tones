@@ -14,6 +14,7 @@
 		AA00000000000000000000A5 /* Exercises.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B5 /* Exercises.swift */; };
 		AA00000000000000000000A6 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B6 /* Models.swift */; };
 		AA00000000000000000000A7 /* PracticeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B7 /* PracticeEngine.swift */; };
+		AA00000000000000000000AB /* VoiceCommandManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000BB /* VoiceCommandManager.swift */; };
 		AA00000000000000000000A8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B8 /* Assets.xcassets */; };
 		AA00000000000000000000A9 /* exercises.json in Resources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B9 /* exercises.json */; };
 		AA00000000000000000000AA /* metronome.wav in Resources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000BA /* metronome.wav */; };
@@ -76,6 +77,7 @@
 		AA00000000000000000000B5 /* Exercises.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Exercises.swift; sourceTree = "<group>"; };
 		AA00000000000000000000B6 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		AA00000000000000000000B7 /* PracticeEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeEngine.swift; sourceTree = "<group>"; };
+		AA00000000000000000000BB /* VoiceCommandManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCommandManager.swift; sourceTree = "<group>"; };
 		AA00000000000000000000B8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AA00000000000000000000B9 /* exercises.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = exercises.json; sourceTree = "<group>"; };
 		AA00000000000000000000BA /* metronome.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = metronome.wav; sourceTree = "<group>"; };
@@ -166,6 +168,7 @@
 				AA00000000000000000000B5 /* Exercises.swift */,
 				AA00000000000000000000B6 /* Models.swift */,
 				AA00000000000000000000B7 /* PracticeEngine.swift */,
+				AA00000000000000000000BB /* VoiceCommandManager.swift */,
 				AA00000000000000000000B8 /* Assets.xcassets */,
 				AA00000000000000000000B9 /* exercises.json */,
 				AA00000000000000000000BA /* metronome.wav */,
@@ -358,6 +361,7 @@
 				AA00000000000000000000A5 /* Exercises.swift in Sources */,
 				AA00000000000000000000A6 /* Models.swift in Sources */,
 				AA00000000000000000000A7 /* PracticeEngine.swift in Sources */,
+				AA00000000000000000000AB /* VoiceCommandManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -495,7 +499,8 @@
 				DEVELOPMENT_TEAM = 5L9XFLYL4X;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Perfect-Practice-Info.plist";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Perfect Practice uses the microphone to listen for voice commands like 'step' to advance exercises hands-free.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Perfect Practice uses speech recognition to detect voice commands for hands-free exercise control.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -528,7 +533,8 @@
 				DEVELOPMENT_TEAM = 5L9XFLYL4X;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Perfect-Practice-Info.plist";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Perfect Practice uses the microphone to listen for voice commands like 'step' to advance exercises hands-free.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Perfect Practice uses speech recognition to detect voice commands for hands-free exercise control.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

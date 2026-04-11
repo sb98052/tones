@@ -1,11 +1,13 @@
 {
-  "version": 10,
+  "version": 12,
   "exercises": [
     {
       "name": "Permutations",
+      "category": "scalar",
+      "group": 1,
       "symbol": "♯",
       "atoms": ["multiselect", "permutations"],
-      "multiselect": [[1,2,3],["up","down"]],
+      "multiselect": [[1,2,3,4],["up","down"]],
       "max_position": 4,
       "chords": [
         "la_minor",
@@ -15,6 +17,8 @@
     },
     {
       "name": "Surround middle 3",
+      "category": "chord",
+      "group": 2,
       "symbol": "◎",
       "atoms": ["down"],
       "simpleatoms": ["position"],
@@ -27,6 +31,8 @@
     },
     {
       "name": "Move middle 3",
+      "category": "chord",
+      "group": 2,
       "symbol": "↕",
       "atoms": ["down"],
       "simpleatoms": ["position"],
@@ -41,6 +47,8 @@
     },
     {
       "name": "Important Frame",
+      "category": "scalar",
+      "group": 3,
       "symbol": "★",
       "simpleatoms": ["position"],
       "rotateatoms": ["notes"],
@@ -52,6 +60,8 @@
     },
     {
       "name": "Important Frame",
+      "category": "scalar",
+      "group": 3,
       "symbol": "★",
       "simpleatoms": ["position"],
       "rotateatoms": ["notes"],
@@ -64,6 +74,8 @@
     },
     {
       "name": "TArpeggio",
+      "category": "arpeggio",
+      "group": 4,
       "symbol": "▲",
       "simpleatoms": ["multiselect", "multiselect"],
       "multiselect": [[1,2,3],["up","down"]],
@@ -82,12 +94,14 @@
     },
     {
       "name": "TArpeggio 6",
+      "group": 4,
+      "category": "arpeggio",
       "symbol": "△",
       "simpleatoms": ["multiselect", "multiselect"],
-      "multiselect": [[1,2,3],["up","down"]],
+      "multiselect": [[1,2,3,4],["up","down"]],
       "rotateatoms": ["notes", "position2"],
       "notes": [1, 3, 5, "#6"],
-      "max_position": 3,
+      "max_position": 4,
       "chords": [
         "la_minor", "re_minor", "mi_minor",
         "do_major", "fa_major", "sol_major",
@@ -100,6 +114,8 @@
     },
     {
       "name": "TChord",
+      "category": "chord",
+      "group": 5,
       "symbol": "♦",
       "simpleatoms": ["position2"],
       "max_position": 3,
@@ -116,8 +132,29 @@
       ]
     },
     {
+      "name": "TChord 6",
+      "category": "chord",
+      "group": 5,
+      "symbol": "◇",
+      "simpleatoms": ["position2"],
+      "max_position": 3,
+      "rotateatoms": ["notes"],
+      "notes": [1, 3, 5, "#6"],
+      "chords": [
+        "la_minor", "re_minor", "mi_minor",
+        "do_major", "fa_major", "sol_major",
+        "mi_dominant", "re_dominant",
+        "mi7_dominant", "la_minor_dm", "re_minor_gm", "fa_major_bb",
+        "la7_dominant", "re7_dominant", "sol7_dominant",
+        "fa_minor",
+        "re_minor7", "do_major7", "fa_major7"
+      ]
+    },
+    {
       "name": "BArpeggio",
+      "category": "arpeggio",
       "disabled": true,
+      "group": 6,
       "symbol": "▼",
       "atoms": ["position2"],
       "simpleatoms": [],
@@ -136,7 +173,9 @@
     },
     {
       "name": "BArpeggio 6",
+      "category": "arpeggio",
       "symbol": "▽",
+      "group": 6,
       "simpleatoms": ["multiselect", "multiselect"],
       "multiselect": [[1,2,3],["up","down"]],
       "rotateatoms": ["notes", "position"],
@@ -154,6 +193,8 @@
     },
     {
       "name": "BChord",
+      "category": "chord",
+      "group": 7,
       "symbol": "◈",
       "simpleatoms": ["position2"],
       "max_position": 3,
@@ -171,7 +212,9 @@
     },
     {
       "name": "BChord 6",
+      "category": "chord",
       "symbol": "◊",
+      "group": 7,
       "disabled": true,
       "simpleatoms": ["position2"],
       "max_position": 3,
@@ -189,8 +232,10 @@
     },
     {
       "name": "Bass 6",
+      "category": "chord",
       "symbol": "⬦",
       "disabled": true,
+      "group": 7,
       "atoms": ["multiselect", "multiselect"],
       "multiselect": [[1,2,3],["up","down"]],
       "simpleatoms": [],
@@ -208,7 +253,9 @@
     },
     {
       "name": "FArpeggio",
+      "category": "arpeggio",
       "symbol": "◆",
+      "group": 8,
       "simpleatoms": ["multiselect"],
       "multiselect": [[1,2,3],["up","down"]],
       "rotateatoms": ["notes", "position"],
@@ -226,6 +273,8 @@
     },
     {
       "name": "Horizontal 6",
+      "category": "arpeggio",
+      "group": 8,
       "symbol": "⊙",
       "disabled": true,
       "atoms": ["down"],
@@ -238,6 +287,8 @@
     },
     {
       "name": "Horizontal Triad",
+      "category": "arpeggio",
+      "group": 8,
       "symbol": "→",
       "atoms": ["down"],
       "simpleatoms": [],
@@ -255,6 +306,8 @@
     },
     {
       "name": "La pompe",
+      "category": "chord",
+      "group": 7,
       "symbol": "♪",
       "atoms": [],
       "chords": []

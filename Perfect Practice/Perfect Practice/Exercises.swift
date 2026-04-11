@@ -19,11 +19,13 @@ struct ExerciseLine {
 struct Exercise {
     let typeName: String
     let symbol: String
+    let category: String    // "chord", "arpeggio", or "scalar"
     let titleSuffix: String
     let displayLines: [ExerciseLine]
     let solfegeNotes: [String]
-    let startNoteIndex: Int?
-    let playstyle: String  // "arpeggio" or "chord"
+    let startNote: String?  // chord tone solfege, e.g. "mi"
+    let playstyle: String   // "arpeggio" or "chord"
+    let maxPosition: Int    // from exercise spec's max_position
 }
 
 // MARK: - Atom Parameters
@@ -114,6 +116,7 @@ struct ExerciseSpec: Identifiable {
     let id: String  // derived from name
     let name: String
     let symbol: String
+    let category: String     // "chord", "arpeggio", or "scalar"
     let atoms: [Atom]        // always active
     let simpleAtoms: [Atom]  // active when rotate is OFF
     let rotateAtoms: [Atom]  // active when rotate is ON
@@ -121,6 +124,7 @@ struct ExerciseSpec: Identifiable {
     let params: AtomParams
     let notes: [String]  // "1"-"7" for diatonic, "#6" for raised, "b3" for lowered
     let playstyle: String  // "arpeggio" or "chord"
+    let group: Int         // group number for uniform probability distribution
     let disabled: Bool
 
     func generate(chordKey: String = "", rotate: Bool = false) -> Exercise {
@@ -149,7 +153,6 @@ struct ExerciseSpec: Identifiable {
 
         // Resolve notes to solfege only if .notes is in the effective atom list
         var solfege: [String] = []
-        var startIndex: Int? = nil
         if effectiveAtoms.contains(.notes), !notes.isEmpty, !chordKey.isEmpty {
             // Convert to [Any]: plain numbers become Int, altered degrees stay String
             let degrees: [Any] = notes.map { s -> Any in
@@ -157,22 +160,25 @@ struct ExerciseSpec: Identifiable {
                 return s
             }
             solfege = solfegeNotes(for: chordKey, degrees: degrees)
-            if rotate, !solfege.isEmpty {
-                let unique = Array(Set(solfege))
-                if let startNote = unique.randomElement() {
-                    startIndex = solfege.firstIndex(of: startNote)
-                }
-            }
+        }
+
+        // Start note: pick a random chord tone (degrees 1, 3, 5) when rotate is on
+        var startNote: String? = nil
+        if rotate, !chordKey.isEmpty {
+            let chordTones = solfegeNotes(for: chordKey, degrees: [1, 3, 5] as [Any])
+            startNote = chordTones.randomElement()
         }
 
         return Exercise(
             typeName: name,
             symbol: symbol,
+            category: category,
             titleSuffix: titleSuffix,
             displayLines: displayLines,
             solfegeNotes: solfege,
-            startNoteIndex: startIndex,
-            playstyle: playstyle
+            startNote: startNote,
+            playstyle: playstyle,
+            maxPosition: params.maxPosition
         )
     }
 
@@ -310,10 +316,21 @@ class ExerciseCatalog: ObservableObject {
         exercises.filter { !$0.disabled && enabled.contains($0.id) && $0.matchesChord(chordKey) }
     }
 
-    /// Generate a random exercise for the given chord
+    /// Generate a random exercise for the given chord.
+    /// Picks a group uniformly at random, then a random exercise within that group.
     func generateForChord(_ chordKey: String, enabled: Set<String>, rotate: Bool = false) -> Exercise? {
         let matching = exercisesForChord(chordKey, enabled: enabled)
-        guard let spec = matching.randomElement() else { return nil }
+        guard !matching.isEmpty else { return nil }
+
+        // Group exercises by their group number
+        var groups: [Int: [ExerciseSpec]] = [:]
+        for spec in matching {
+            groups[spec.group, default: []].append(spec)
+        }
+
+        // Pick a random group, then a random exercise within it
+        guard let groupExercises = groups.values.randomElement(),
+              let spec = groupExercises.randomElement() else { return nil }
         return spec.generate(chordKey: chordKey, rotate: rotate)
     }
 
@@ -383,13 +400,16 @@ class ExerciseCatalog: ObservableObject {
             notes = []
         }
         let symbol = dict["symbol"] as? String ?? "●"
+        let category = dict["category"] as? String ?? "arpeggio"
         let playstyle = dict["playstyle"] as? String ?? "arpeggio"
+        let group = dict["group"] as? Int ?? 0
         let disabled = dict["disabled"] as? Bool ?? false
 
         return ExerciseSpec(
             id: id,
             name: name,
             symbol: symbol,
+            category: category,
             atoms: atoms,
             simpleAtoms: simpleAtoms,
             rotateAtoms: rotateAtoms,
@@ -397,6 +417,7 @@ class ExerciseCatalog: ObservableObject {
             params: params,
             notes: notes,
             playstyle: playstyle,
+            group: group,
             disabled: disabled
         )
     }

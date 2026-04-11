@@ -45,6 +45,7 @@ struct KeyPressView: UIViewControllerRepresentable {
 
 struct ContentView: View {
     @StateObject private var engine = PracticeEngine()
+    @StateObject private var voiceCommands = VoiceCommandManager()
 
     @State private var selectedProgression = "minor_swing"
     @State private var bpm: Double = 120
@@ -57,6 +58,11 @@ struct ContentView: View {
 
     private var progressionKeys: [String] {
         Array(progressions.keys).sorted()
+    }
+
+    private var chordStyles: [String: ChordStyle] {
+        guard let prog = progressions[selectedProgression] else { return [:] }
+        return chordStyleMap(for: prog)
     }
 
     var body: some View {
@@ -115,7 +121,14 @@ struct ContentView: View {
                     engine.playMode = false
                     engine.debugMode = true
                     engine.start(progressionKey: selectedProgression)
+                    voiceCommands.onCommand = { engine.advance() }
+                    voiceCommands.startListening()
                 }
+
+            // Key of the day
+            Text(keyOfTheDay().name)
+                .font(.title3)
+                .foregroundColor(.secondary)
 
             // Progression Picker
             VStack(alignment: .leading, spacing: 8) {
@@ -182,6 +195,8 @@ struct ContentView: View {
                 engine.playMode = playMode
                 engine.debugMode = false
                 engine.start(progressionKey: selectedProgression)
+                voiceCommands.onCommand = { engine.advance() }
+                voiceCommands.startListening()
             }) {
                 Image(systemName: "play.fill")
                     .font(.system(size: 40))
@@ -215,25 +230,26 @@ struct ContentView: View {
 
     // MARK: - Practice View
 
+    @State private var showCurrentLabel = false
+    @State private var showNextLabel = false
+
     private var practiceView: some View {
         VStack(spacing: 0) {
             // Top half: current
-            exerciseCard(
+            exerciseGraphicCard(
                 exercise: engine.currentExercise,
-                chordName: displayName(for: engine.currentChordName),
-                color: .blue,
-                isLarge: true
+                chordKey: engine.currentChordName,
+                showLabel: $showCurrentLabel
             )
             .frame(maxHeight: .infinity)
 
             Divider()
 
             // Bottom half: next
-            exerciseCard(
+            exerciseGraphicCard(
                 exercise: engine.nextExercise,
-                chordName: displayName(for: engine.nextChordName),
-                color: .gray,
-                isLarge: false
+                chordKey: engine.nextChordName,
+                showLabel: $showNextLabel
             )
             .frame(maxHeight: .infinity)
 
@@ -252,7 +268,10 @@ struct ContentView: View {
                         .foregroundColor(.blue)
                 }
 
-                Button(action: { engine.stop() }) {
+                Button(action: {
+                    voiceCommands.stopListening()
+                    engine.stop()
+                }) {
                     Image(systemName: "stop.fill")
                         .font(.system(size: 40))
                         .foregroundColor(.red)
@@ -262,98 +281,443 @@ struct ContentView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            if engine.warmUp {
+            if engine.warmUp || engine.debugMode {
                 engine.advance()
             }
         }
         .background(
             KeyPressView { _ in
-                if engine.warmUp {
+                if engine.warmUp || engine.debugMode {
                     engine.advance()
                 }
             }
         )
     }
 
-    // MARK: - Exercise Card
+    // MARK: - Graphic Card
 
-    private func exerciseCard(
+    private func exerciseGraphicCard(
         exercise: Exercise?,
-        chordName: String,
-        color: Color,
-        isLarge: Bool
+        chordKey: String,
+        showLabel: Binding<Bool>
     ) -> some View {
-        VStack(spacing: isLarge ? 10 : 6) {
-            // Chord name
-            Text(chordName)
-                .font(isLarge ? .title2 : .callout)
-                .fontWeight(.bold)
-                .foregroundColor(color)
-
+        Group {
             if let exercise = exercise {
-                // Symbol + Name + Direction on one line
-                let title = [exercise.symbol, exercise.typeName, exercise.titleSuffix]
-                    .filter { !$0.isEmpty }
-                    .joined(separator: " ")
-                Text(title)
-                    .font(isLarge ? .title3 : .subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(color)
-
-                // Remaining atom lines (position, pattern, multiselect)
-                ForEach(Array(exercise.displayLines.enumerated()), id: \.offset) { _, line in
-                    HStack {
-                        Text(line.label)
-                            .font(isLarge ? .body : .caption)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text(line.value)
-                            .font(isLarge ?
-                                  (line.emphasis ? .system(size: 48, weight: .bold) : .title3) :
-                                  (line.emphasis ? .system(size: 32, weight: .bold) : .body))
-                            .foregroundColor(line.emphasis ? color : .primary)
+                let style = chordStyles[chordKey] ?? ChordStyle(color: .gray, dashed: false)
+                let graphic = parseGraphic(exercise: exercise, chordKey: chordKey, style: style)
+                ExerciseGraphicView(graphic: graphic)
+                    .onTapGesture {
+                        showLabel.wrappedValue = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            showLabel.wrappedValue = false
+                        }
                     }
-                }
+                    .overlay(alignment: .bottom) {
+                        if showLabel.wrappedValue {
+                            VStack(spacing: 4) {
+                                Text(graphic.exerciseLabel)
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                if let degree = graphic.chordDegree {
+                                    chordDegreeOverlay(degree: degree, color: graphic.chordColor)
+                                }
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+                            .padding(.bottom, 4)
+                            .transition(.opacity)
+                        }
+                    }
+                    .animation(.easeInOut(duration: 0.2), value: showLabel.wrappedValue)
+            }
+        }
+        .padding(12)
+    }
 
-                // Solfege notes with inline start note highlighting
-                if !exercise.solfegeNotes.isEmpty {
-                    solfegeNotesView(
-                        notes: exercise.solfegeNotes,
-                        startIndex: exercise.startNoteIndex,
-                        color: color,
-                        isLarge: isLarge
+    private func chordDegreeOverlay(degree: Int, color: Color) -> some View {
+        HStack(spacing: 3) {
+            ForEach(1...7, id: \.self) { d in
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(d == degree ? color : Color.clear)
+                    .frame(width: 14, height: 14)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 2)
+                            .stroke(d == degree ? color : Color.gray.opacity(0.4), lineWidth: 1)
                     )
-                }
             }
         }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
     }
 
-    private func solfegeNotesView(
-        notes: [String],
-        startIndex: Int?,
-        color: Color,
-        isLarge: Bool
-    ) -> some View {
-        // Wrap notes in a flowing layout
-        let noteFont: Font = isLarge ? .title3 : .caption
-        let highlightFont: Font = isLarge ? .system(size: 28, weight: .bold) : .system(size: 16, weight: .bold)
+    // MARK: - Parse Exercise → Graphic
 
-        return HStack(spacing: isLarge ? 8 : 4) {
-            ForEach(Array(notes.enumerated()), id: \.offset) { index, note in
-                if index == startIndex {
-                    Text(note.uppercased())
-                        .font(highlightFont)
-                        .foregroundColor(color)
-                } else {
+    private func parseGraphic(exercise: Exercise, chordKey: String, style: ChordStyle) -> ExerciseGraphicData {
+        // Direction from titleSuffix or multiselect lines
+        let direction = parseDirection(exercise: exercise)
+
+        // Position rows
+        let positionRows = parsePositionRows(exercise: exercise)
+
+        // Start note (chord tone)
+        let startNote = exercise.startNote?.uppercased()
+
+        // Chord degree
+        let root = chordRoot(chordKey)
+        let degree = solfegeToDegree[root]
+
+        // Permutation
+        let permutation = parsePermutation(exercise: exercise)
+
+        // Label for tap
+        let label = [exercise.symbol, exercise.typeName, exercise.titleSuffix]
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+
+        return ExerciseGraphicData(
+            direction: direction,
+            positionRows: positionRows,
+            startNote: startNote,
+            symbol: exercise.symbol,
+            category: exercise.category,
+            chordDegree: degree,
+            chordColor: style.color,
+            dashed: style.dashed,
+            permutation: permutation,
+            exerciseLabel: label
+        )
+    }
+
+    private func parseDirection(exercise: Exercise) -> SignDirection {
+        let suffix = exercise.titleSuffix.lowercased()
+        if !suffix.isEmpty {
+            if suffix == "up" { return .up }
+            if suffix == "down" { return .down }
+            if suffix.contains("up") && suffix.contains("down") {
+                return suffix.hasPrefix("up") ? .upDown : .downUp
+            }
+            // Single multiselect folded into suffix: "2 up"
+            if suffix.hasSuffix("up") { return .up }
+            if suffix.hasSuffix("down") { return .down }
+        }
+        // Check multiselect display lines for direction
+        for line in exercise.displayLines {
+            let val = line.value.lowercased()
+            if val.contains("up") { return .up }
+            if val.contains("down") { return .down }
+        }
+        return .none
+    }
+
+    private func parsePositionRows(exercise: Exercise) -> [[PositionDot]] {
+        var rows: [[PositionDot]] = []
+        let maxPos = exercise.maxPosition
+
+        for line in exercise.displayLines {
+            switch line.label {
+            case "Position":
+                if let pos = Int(line.value.trimmingCharacters(in: .whitespaces)) {
+                    rows.append(makeDotRow(selected: [pos], maxPos: maxPos, colors: [.green]))
+                }
+            case "Positions":
+                let parts = line.value.split(separator: ",").compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+                if parts.count >= 2 {
+                    rows.append(makeDotRow(selected: parts, maxPos: maxPos, colors: [.green, .red]))
+                } else if let p = parts.first {
+                    rows.append(makeDotRow(selected: [p], maxPos: maxPos, colors: [.green]))
+                }
+            case "First", "Second", "Third", "Fourth", "Fifth":
+                // Multiselect: "2 up" → position 2
+                let parts = line.value.split(separator: " ")
+                if let posStr = parts.first, let pos = Int(posStr) {
+                    let color: Color = line.label == "First" ? .green : .red
+                    rows.append(makeDotRow(selected: [pos], maxPos: maxPos, colors: [color]))
+                }
+            default:
+                break
+            }
+        }
+
+        // Also check titleSuffix for folded single multiselect: "2 up"
+        if rows.isEmpty && !exercise.titleSuffix.isEmpty {
+            let parts = exercise.titleSuffix.split(separator: " ")
+            if let posStr = parts.first, let pos = Int(posStr) {
+                rows.append(makeDotRow(selected: [pos], maxPos: maxPos, colors: [.green]))
+            }
+        }
+
+        return rows
+    }
+
+    private func makeDotRow(selected: [Int], maxPos: Int, colors: [Color]) -> [PositionDot] {
+        (1...maxPos).map { pos in
+            if let idx = selected.firstIndex(of: pos) {
+                let color = idx < colors.count ? colors[idx] : colors.last ?? .green
+                return PositionDot(position: pos, filled: true, color: color)
+            }
+            return PositionDot(position: pos, filled: false, color: .gray)
+        }
+    }
+
+    private func parsePermutation(exercise: Exercise) -> PermutationData? {
+        guard let line = exercise.displayLines.first(where: { $0.label == "Pattern" }) else {
+            return nil
+        }
+        // "2 3 1, 1 2"
+        let groups = line.value.split(separator: ",")
+        guard groups.count == 2 else { return nil }
+
+        let three = groups[0].split(separator: " ").compactMap { Int($0) }
+        let two = groups[1].split(separator: " ").compactMap { Int($0) }
+        guard three.count == 3, two.count == 2 else { return nil }
+
+        let orderColors: [Color] = [.green, .yellow, .red]
+
+        // For the 3-group: each position gets colored by when it's played
+        // "2 3 1" means position 2 played 1st (green), 3 played 2nd (yellow), 1 played 3rd (red)
+        var threeBoxes: [Color] = Array(repeating: .gray, count: 3)
+        for (order, pos) in three.enumerated() {
+            if pos >= 1 && pos <= 3 {
+                threeBoxes[pos - 1] = orderColors[min(order, orderColors.count - 1)]
+            }
+        }
+
+        var twoBoxes: [Color] = Array(repeating: .gray, count: 2)
+        for (order, pos) in two.enumerated() {
+            if pos >= 1 && pos <= 2 {
+                twoBoxes[pos - 1] = order == 0 ? .green : .red
+            }
+        }
+
+        return PermutationData(threeGroup: threeBoxes, twoGroup: twoBoxes)
+    }
+}
+
+// MARK: - Graphic Data Types
+
+enum SignDirection {
+    case up, down, upDown, downUp, none
+}
+
+struct PositionDot {
+    let position: Int
+    let filled: Bool
+    let color: Color
+}
+
+struct PermutationData {
+    let threeGroup: [Color]  // 3 box colors
+    let twoGroup: [Color]    // 2 box colors
+}
+
+struct ExerciseGraphicData {
+    let direction: SignDirection
+    let positionRows: [[PositionDot]]
+    let startNote: String?
+    let symbol: String            // unicode symbol inside badge
+    let category: String          // "chord", "arpeggio", or "scalar"
+    let chordDegree: Int?         // 1-7
+    let chordColor: Color
+    let dashed: Bool
+    let permutation: PermutationData?
+    let exerciseLabel: String
+}
+
+// MARK: - Sign Shape
+
+struct SignShape: Shape {
+    let direction: SignDirection
+    private let peakRatio: CGFloat = 0.15
+    private let cornerRadius: CGFloat = 8
+
+    func path(in rect: CGRect) -> Path {
+        let w = rect.width
+        let h = rect.height
+        let peak = h * peakRatio
+        let r = cornerRadius
+        var p = Path()
+
+        switch direction {
+        case .up:
+            // Triangle top, flat bottom
+            p.move(to: CGPoint(x: w / 2, y: 0))
+            p.addLine(to: CGPoint(x: w, y: peak))
+            p.addLine(to: CGPoint(x: w, y: h - r))
+            p.addArc(center: CGPoint(x: w - r, y: h - r), radius: r, startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
+            p.addLine(to: CGPoint(x: r, y: h))
+            p.addArc(center: CGPoint(x: r, y: h - r), radius: r, startAngle: .degrees(90), endAngle: .degrees(180), clockwise: false)
+            p.addLine(to: CGPoint(x: 0, y: peak))
+            p.closeSubpath()
+
+        case .down:
+            // Flat top, triangle bottom
+            p.move(to: CGPoint(x: r, y: 0))
+            p.addLine(to: CGPoint(x: w - r, y: 0))
+            p.addArc(center: CGPoint(x: w - r, y: r), radius: r, startAngle: .degrees(-90), endAngle: .degrees(0), clockwise: false)
+            p.addLine(to: CGPoint(x: w, y: h - peak))
+            p.addLine(to: CGPoint(x: w / 2, y: h))
+            p.addLine(to: CGPoint(x: 0, y: h - peak))
+            p.addLine(to: CGPoint(x: 0, y: r))
+            p.addArc(center: CGPoint(x: r, y: r), radius: r, startAngle: .degrees(180), endAngle: .degrees(270), clockwise: false)
+            p.closeSubpath()
+
+        case .upDown:
+            // Triangle top and bottom (diamond-like)
+            p.move(to: CGPoint(x: w / 2, y: 0))
+            p.addLine(to: CGPoint(x: w, y: peak))
+            p.addLine(to: CGPoint(x: w, y: h - peak))
+            p.addLine(to: CGPoint(x: w / 2, y: h))
+            p.addLine(to: CGPoint(x: 0, y: h - peak))
+            p.addLine(to: CGPoint(x: 0, y: peak))
+            p.closeSubpath()
+
+        case .downUp:
+            // Same as upDown visually (both pointed)
+            p.move(to: CGPoint(x: w / 2, y: 0))
+            p.addLine(to: CGPoint(x: w, y: peak))
+            p.addLine(to: CGPoint(x: w, y: h - peak))
+            p.addLine(to: CGPoint(x: w / 2, y: h))
+            p.addLine(to: CGPoint(x: 0, y: h - peak))
+            p.addLine(to: CGPoint(x: 0, y: peak))
+            p.closeSubpath()
+
+        case .none:
+            // Rounded rectangle
+            p.addRoundedRect(in: rect, cornerSize: CGSize(width: r, height: r))
+        }
+
+        return p
+    }
+}
+
+// MARK: - Exercise Graphic View
+
+struct ExerciseGraphicView: View {
+    let graphic: ExerciseGraphicData
+    private let dotSize: CGFloat = 20
+    private let boxSize: CGFloat = 18
+
+    var body: some View {
+        ZStack {
+            SignShape(direction: graphic.direction)
+                .stroke(graphic.chordColor, style: StrokeStyle(
+                    lineWidth: 3,
+                    dash: graphic.dashed ? [8, 6] : []
+                ))
+                .background(
+                    SignShape(direction: graphic.direction)
+                        .fill(graphic.chordColor.opacity(0.08))
+                )
+
+            VStack(spacing: 12) {
+                // Exercise badge: shape determined by category, symbol inside
+                exerciseBadge
+
+                // Position dots
+                ForEach(Array(graphic.positionRows.enumerated()), id: \.offset) { _, row in
+                    positionDotsView(row)
+                }
+
+                // Start note box
+                if let note = graphic.startNote {
                     Text(note)
-                        .font(noteFont)
+                        .font(.system(size: 36, weight: .bold, design: .rounded))
                         .foregroundColor(.primary)
+                        .frame(minWidth: 70, minHeight: 50)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.primary, lineWidth: 2)
+                        )
                 }
+
+                // Permutation boxes
+                if let perm = graphic.permutation {
+                    permutationView(perm)
+                }
+            }
+            .padding(.vertical, graphic.direction == .up || graphic.direction == .upDown ? 30 : 16)
+            .padding(.horizontal, 16)
+        }
+    }
+
+    private let badgeSize: CGFloat = 44
+
+    /// Category badge: filled circle (chord), outline circle (arpeggio), rectangle (scalar)
+    @ViewBuilder
+    private var exerciseBadge: some View {
+        let symbolText = Text(graphic.symbol)
+            .font(.system(size: 20))
+            .foregroundColor(graphic.category == "chord" ? .white : graphic.chordColor.opacity(0.8))
+
+        switch graphic.category {
+        case "chord":
+            // Filled circle with symbol
+            ZStack {
+                Circle()
+                    .fill(graphic.chordColor.opacity(0.6))
+                    .frame(width: badgeSize, height: badgeSize)
+                symbolText
+            }
+        case "arpeggio":
+            // Outline circle with symbol
+            ZStack {
+                Circle()
+                    .stroke(graphic.chordColor.opacity(0.6), lineWidth: 2)
+                    .frame(width: badgeSize, height: badgeSize)
+                symbolText
+            }
+        default:
+            // Scalar: rectangle with symbol
+            ZStack {
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(graphic.chordColor.opacity(0.6), lineWidth: 2)
+                    .frame(width: badgeSize, height: badgeSize * 0.7)
+                symbolText
             }
         }
     }
+
+    private func positionDotsView(_ dots: [PositionDot]) -> some View {
+        HStack(spacing: 12) {
+            ForEach(Array(dots.enumerated()), id: \.offset) { _, dot in
+                Circle()
+                    .fill(dot.filled ? dot.color : Color.clear)
+                    .frame(width: dotSize, height: dotSize)
+                    .overlay(Circle().stroke(dot.filled ? dot.color : Color.gray, lineWidth: 2))
+            }
+        }
+    }
+
+    private func permutationView(_ perm: PermutationData) -> some View {
+        HStack(spacing: 4) {
+            // 3-group
+            ForEach(Array(perm.threeGroup.enumerated()), id: \.offset) { _, color in
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(color)
+                    .frame(width: boxSize, height: boxSize)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 3)
+                            .stroke(color, lineWidth: 1.5)
+                    )
+            }
+
+            Spacer().frame(width: 10)
+
+            // 2-group
+            ForEach(Array(perm.twoGroup.enumerated()), id: \.offset) { _, color in
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(color)
+                    .frame(width: boxSize, height: boxSize)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 3)
+                            .stroke(color, lineWidth: 1.5)
+                    )
+            }
+        }
+    }
+}
+
+#Preview {
+    ContentView()
 }
 
 #Preview {

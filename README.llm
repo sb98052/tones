@@ -1,0 +1,15 @@
+# Tones Project - LLM Context
+
+## Project Overview
+Ear training application for scale degrees over chord progressions. Each note combined with underlying harmonic context has a unique feel.
+
+## Key Concepts
+- Uses a special solfege system where 'do' is always anchored at the root of the Ionian scale, and 'la' at the root of Aeolian
+- Minor keys start with 'la', major keys start with 'do'
+- Training focuses on chord tones within progressions
+
+## Main Files
+- `progression.py` - Main training script that plays chord progressions with melody notes and labels each with its harmonic function
+
+## Recent Changes
+- Added scale playback after key randomization to establish tonal center before training begins
