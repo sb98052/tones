@@ -94,7 +94,7 @@
     },
     {
       "name": "TArpeggio 6",
-      "group": 4,
+      "group": 6,
       "category": "arpeggio",
       "symbol": "△",
       "simpleatoms": ["multiselect", "multiselect"],
