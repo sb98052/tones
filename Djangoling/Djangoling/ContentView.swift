@@ -14,6 +14,7 @@ struct ContentView: View {
     @State private var audiateMode = false
     @State private var noVoice = false
     @State private var guitarMode = false
+    @State private var chordMode = false
     @State private var voiceVolume: Double = 0.7
     @State private var delay: Double = 3.0
 
@@ -75,6 +76,12 @@ struct ContentView: View {
                             audiateMode = false
                             player.playbackMode = .recognition
                         }
+                    }
+                    .disabled(player.state != .stopped)
+
+                Toggle("Chord Mode", isOn: $chordMode)
+                    .onChange(of: chordMode) { _, newValue in
+                        player.chordMode = newValue
                     }
                     .disabled(player.state != .stopped)
             }
@@ -192,6 +199,7 @@ struct ContentView: View {
                     // Play button
                     Button(action: {
                         player.guitarMode = guitarMode
+                        player.chordMode = chordMode
                         player.waitTime = delay
                         player.start(progressionKey: selectedProgression)
                     }) {

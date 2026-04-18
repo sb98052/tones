@@ -33,6 +33,7 @@ class ExercisePlayer: ObservableObject {
     var waitTimeAfterExercise: TimeInterval = 2.0
     var guitarMode: Bool = false
     var skipNakedNote: Bool = false  // Skip playing melody note alone, only play with chords
+    var chordMode: Bool = false  // Pick random chord, play chord → note → chord+note
 
     // MARK: - Guitar Mode State
 
@@ -137,6 +138,11 @@ class ExercisePlayer: ObservableObject {
     }
 
     private func runExercise() async {
+        if chordMode {
+            await runChordModeExercise()
+            return
+        }
+
         guard let key = currentKey else { return }
 
         // Pick a random scale degree
@@ -209,6 +215,75 @@ class ExercisePlayer: ObservableObject {
             canReveal = true
         } else {
             await announceResults(degree: degree, chords: shuffledChords)
+        }
+    }
+
+    // MARK: - Chord Mode
+
+    private func runChordModeExercise() async {
+        guard let key = currentKey else { return }
+
+        // 1. Pick random chord from enabled chords
+        let enabled = Array(enabledChords)
+        guard let chordKey = enabled.randomElement(),
+              let chord = chordDefinitions[chordKey] else { return }
+
+        // 2. Pick random chord tone
+        let chordTone = chord.degrees.randomElement()!
+        currentDegree = chordTone
+        currentChords = [chordKey]
+
+        let melodyNote = key.solfegeToNote(chordTone, octave: melodyOctave)
+        lastMelodyNote = melodyNote
+
+        // Build full chord voicing (all chord tones)
+        let fullChordNotes: [String] = chord.degrees.map {
+            key.solfegeToNote($0, octave: chordOctaves.randomElement() ?? 3)
+        }
+
+        // Build chord voicing excluding the melody tone (to avoid doubling when playing chord+note)
+        var chordNotesWithoutMelody: [String] = []
+        for deg in chord.degrees {
+            if deg != chordTone {
+                chordNotesWithoutMelody.append(
+                    key.solfegeToNote(deg, octave: chordOctaves.randomElement() ?? 3)
+                )
+            }
+        }
+        lastChordVoicings = [chordNotesWithoutMelody]
+
+        print("Chord mode — \(chordKey) | chord degrees: \(chord.degrees) | chord voicing: \(fullChordNotes) | chord tone: \(chordTone) → \(melodyNote)")
+
+        // 3. Play chord alone
+        audioManager.playChordWithMelody(chordNotes: fullChordNotes, melodyNote: "")
+        try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+        if Task.isCancelled { return }
+        while state == .paused {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            if Task.isCancelled { return }
+        }
+
+        // 4. Play note alone
+        audioManager.playMelodyOnly(note: melodyNote)
+        try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+        if Task.isCancelled { return }
+        while state == .paused {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            if Task.isCancelled { return }
+        }
+
+        // 5. Play chord + note
+        audioManager.playChordWithMelody(chordNotes: chordNotesWithoutMelody, melodyNote: melodyNote)
+        try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+        if Task.isCancelled { return }
+
+        // 6. Announce (or wait for reveal in guitar mode)
+        if guitarMode {
+            pendingDegree = chordTone
+            pendingChords = [chordKey]
+            canReveal = true
+        } else {
+            await announceResults(degree: chordTone, chords: [chordKey])
         }
     }
 

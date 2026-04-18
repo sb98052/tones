@@ -32,6 +32,7 @@ class ProgressionPlayer: ObservableObject {
     var playbackMode: PlaybackMode = .recognition
     var noVoice: Bool = false
     var guitarMode: Bool = false
+    var chordMode: Bool = false
     var chordOctaves: [Int] = [3, 4]
     var melodyOctaves: [Int] = [5, 6]
     var waitTime: TimeInterval = 3.0
@@ -216,10 +217,108 @@ class ProgressionPlayer: ObservableObject {
         let melody = getRandomMelodyNote(chordDef: chordDef, key: key)
         currentLabel = guitarMode ? "" : melody.label  // Hide label in guitar mode until reveal
 
+        if chordMode {
+            print("Chord mode — \(chordName) in key \(key) | chord voicing: \(chordNotes) | melody: \(melody.noteName) (\(melody.degree))")
+        }
+
         let chordMelodyDur = chordDuration * 0.35
         let melodyOnlyDur = chordDuration * 0.25
 
-        if guitarMode {
+        if chordMode {
+            // Chord mode: chord alone → (mode-specific middle) → chord + note
+
+            if guitarMode {
+                // Guitar + Chord: chord → note → chord+note → wait for reveal
+                pendingLabel = melody.label
+                pendingMelodyNote = melody.noteName
+                canReveal = true
+                lastChordNotes = chordNotes
+                lastMelodyNote = melody.noteName
+
+                // 1. Chord alone
+                audioManager.playChordAndMelody(chordNotes: chordNotes, melodyNote: "")
+                try? await Task.sleep(nanoseconds: UInt64(chordMelodyDur * 1_000_000_000))
+                if Task.isCancelled { return }
+                try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+                if Task.isCancelled { return }
+
+                // 2. Note alone
+                audioManager.playMelodyOnly(note: melody.noteName)
+                try? await Task.sleep(nanoseconds: UInt64(melodyOnlyDur * 1_000_000_000))
+                if Task.isCancelled { return }
+                try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+                if Task.isCancelled { return }
+
+                // 3. Chord + note
+                audioManager.playChordAndMelody(chordNotes: chordNotes, melodyNote: melody.noteName)
+                try? await Task.sleep(nanoseconds: UInt64(chordMelodyDur * 1_000_000_000))
+                if Task.isCancelled { return }
+                try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+
+            } else if playbackMode == .audiation {
+                // Audiation + Chord: chord → speak → wait → note → chord+note
+
+                // 1. Chord alone
+                audioManager.playChordAndMelody(chordNotes: chordNotes, melodyNote: "")
+                try? await Task.sleep(nanoseconds: UInt64(chordMelodyDur * 1_000_000_000))
+                if Task.isCancelled { return }
+                try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+                if Task.isCancelled { return }
+
+                // 2. Speak solfege
+                if !noVoice {
+                    await speakLabel(melody.label)
+                }
+
+                // 3. Wait (audiation)
+                try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+                if Task.isCancelled { return }
+
+                // 4. Note alone
+                audioManager.playMelodyOnly(note: melody.noteName)
+                try? await Task.sleep(nanoseconds: UInt64(melodyOnlyDur * 1_000_000_000))
+                if Task.isCancelled { return }
+                try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+                if Task.isCancelled { return }
+
+                // 5. Chord + note
+                audioManager.playChordAndMelody(chordNotes: chordNotes, melodyNote: melody.noteName)
+                try? await Task.sleep(nanoseconds: UInt64(chordMelodyDur * 1_000_000_000))
+                if Task.isCancelled { return }
+                try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+
+            } else {
+                // Recognition + Chord: chord → note → chord+note → speak
+
+                // 1. Chord alone
+                audioManager.playChordAndMelody(chordNotes: chordNotes, melodyNote: "")
+                try? await Task.sleep(nanoseconds: UInt64(chordMelodyDur * 1_000_000_000))
+                if Task.isCancelled { return }
+                try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+                if Task.isCancelled { return }
+
+                // 2. Note alone
+                audioManager.playMelodyOnly(note: melody.noteName)
+                try? await Task.sleep(nanoseconds: UInt64(melodyOnlyDur * 1_000_000_000))
+                if Task.isCancelled { return }
+                try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+                if Task.isCancelled { return }
+
+                // 3. Chord + note
+                audioManager.playChordAndMelody(chordNotes: chordNotes, melodyNote: melody.noteName)
+                try? await Task.sleep(nanoseconds: UInt64(chordMelodyDur * 1_000_000_000))
+                if Task.isCancelled { return }
+                try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+                if Task.isCancelled { return }
+
+                // 4. Speak solfege
+                if !noVoice {
+                    await speakLabel(melody.label)
+                }
+                try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+            }
+
+        } else if guitarMode {
             // Guitar mode: play sounds but don't reveal the answer
             // Store pending reveal data
             pendingLabel = melody.label
