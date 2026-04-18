@@ -119,7 +119,7 @@ class ProgressionPlayer: ObservableObject {
             try? await Task.sleep(nanoseconds: UInt64(waitTime * 0.5 * 1_000_000_000))
 
             // Play melody only to confirm the note
-            audioManager.playMelodyOnly(note: melodyNote)
+            playNoteAlone(note: melodyNote)
 
             pendingLabel = ""
             pendingMelodyNote = ""
@@ -153,7 +153,7 @@ class ProgressionPlayer: ObservableObject {
         canReveal = true
 
         // Replay the exact same chord + melody
-        audioManager.playChordAndMelody(chordNotes: lastChordNotes, melodyNote: lastMelodyNote)
+        playChordMelody(chordNotes: lastChordNotes, melodyNote: lastMelodyNote)
     }
 
     // MARK: - Private Methods
@@ -236,21 +236,24 @@ class ProgressionPlayer: ObservableObject {
                 lastMelodyNote = melody.noteName
 
                 // 1. Chord alone
-                audioManager.playChordAndMelody(chordNotes: chordNotes, melodyNote: "")
+                print("[ChordMode] step 1: chord alone")
+                playMidChord(chordDef, key: key)
                 try? await Task.sleep(nanoseconds: UInt64(chordMelodyDur * 1_000_000_000))
                 if Task.isCancelled { return }
                 try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
                 if Task.isCancelled { return }
 
                 // 2. Note alone
-                audioManager.playMelodyOnly(note: melody.noteName)
+                print("[ChordMode] step 2: note alone")
+                playNoteAlone(note: melody.noteName)
                 try? await Task.sleep(nanoseconds: UInt64(melodyOnlyDur * 1_000_000_000))
                 if Task.isCancelled { return }
                 try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
                 if Task.isCancelled { return }
 
                 // 3. Chord + note
-                audioManager.playChordAndMelody(chordNotes: chordNotes, melodyNote: melody.noteName)
+                print("[ChordMode] step 3: chord + note")
+                playChordMelody(chordNotes: chordNotes, melodyNote: melody.noteName)
                 try? await Task.sleep(nanoseconds: UInt64(chordMelodyDur * 1_000_000_000))
                 if Task.isCancelled { return }
                 try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
@@ -259,7 +262,8 @@ class ProgressionPlayer: ObservableObject {
                 // Audiation + Chord: chord → speak → wait → note → chord+note
 
                 // 1. Chord alone
-                audioManager.playChordAndMelody(chordNotes: chordNotes, melodyNote: "")
+                print("[ChordMode] step 1: chord alone")
+                playMidChord(chordDef, key: key)
                 try? await Task.sleep(nanoseconds: UInt64(chordMelodyDur * 1_000_000_000))
                 if Task.isCancelled { return }
                 try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
@@ -275,14 +279,16 @@ class ProgressionPlayer: ObservableObject {
                 if Task.isCancelled { return }
 
                 // 4. Note alone
-                audioManager.playMelodyOnly(note: melody.noteName)
+                print("[ChordMode] step 4: note alone (audiation)")
+                playNoteAlone(note: melody.noteName)
                 try? await Task.sleep(nanoseconds: UInt64(melodyOnlyDur * 1_000_000_000))
                 if Task.isCancelled { return }
                 try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
                 if Task.isCancelled { return }
 
                 // 5. Chord + note
-                audioManager.playChordAndMelody(chordNotes: chordNotes, melodyNote: melody.noteName)
+                print("[ChordMode] step 5: chord + note (audiation)")
+                playChordMelody(chordNotes: chordNotes, melodyNote: melody.noteName)
                 try? await Task.sleep(nanoseconds: UInt64(chordMelodyDur * 1_000_000_000))
                 if Task.isCancelled { return }
                 try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
@@ -291,21 +297,24 @@ class ProgressionPlayer: ObservableObject {
                 // Recognition + Chord: chord → note → chord+note → speak
 
                 // 1. Chord alone
-                audioManager.playChordAndMelody(chordNotes: chordNotes, melodyNote: "")
+                print("[ChordMode] step 1: chord alone")
+                playMidChord(chordDef, key: key)
                 try? await Task.sleep(nanoseconds: UInt64(chordMelodyDur * 1_000_000_000))
                 if Task.isCancelled { return }
                 try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
                 if Task.isCancelled { return }
 
                 // 2. Note alone
-                audioManager.playMelodyOnly(note: melody.noteName)
+                print("[ChordMode] step 2: note alone")
+                playNoteAlone(note: melody.noteName)
                 try? await Task.sleep(nanoseconds: UInt64(melodyOnlyDur * 1_000_000_000))
                 if Task.isCancelled { return }
                 try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
                 if Task.isCancelled { return }
 
                 // 3. Chord + note
-                audioManager.playChordAndMelody(chordNotes: chordNotes, melodyNote: melody.noteName)
+                print("[ChordMode] step 3: chord + note")
+                playChordMelody(chordNotes: chordNotes, melodyNote: melody.noteName)
                 try? await Task.sleep(nanoseconds: UInt64(chordMelodyDur * 1_000_000_000))
                 if Task.isCancelled { return }
                 try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
@@ -329,7 +338,7 @@ class ProgressionPlayer: ObservableObject {
             lastMelodyNote = melody.noteName
 
             // 1. Play chord + melody (the question)
-            audioManager.playChordAndMelody(chordNotes: chordNotes, melodyNote: melody.noteName)
+            playChordMelody(chordNotes: chordNotes, melodyNote: melody.noteName)
             try? await Task.sleep(nanoseconds: UInt64(chordMelodyDur * 1_000_000_000))
             if Task.isCancelled { return }
 
@@ -353,7 +362,7 @@ class ProgressionPlayer: ObservableObject {
             if Task.isCancelled { return }
 
             // 3. Play melody only FIRST
-            audioManager.playMelodyOnly(note: melody.noteName)
+            playNoteAlone(note: melody.noteName)
             try? await Task.sleep(nanoseconds: UInt64(melodyOnlyDur * 1_000_000_000))
             if Task.isCancelled { return }
 
@@ -362,7 +371,7 @@ class ProgressionPlayer: ObservableObject {
             if Task.isCancelled { return }
 
             // 5. Play chord + melody together
-            audioManager.playChordAndMelody(chordNotes: chordNotes, melodyNote: melody.noteName)
+            playChordMelody(chordNotes: chordNotes, melodyNote: melody.noteName)
             try? await Task.sleep(nanoseconds: UInt64(chordMelodyDur * 1_000_000_000))
             if Task.isCancelled { return }
 
@@ -373,7 +382,7 @@ class ProgressionPlayer: ObservableObject {
             // Standard recognition mode: play first, then announce
 
             // 1. Play chord + melody
-            audioManager.playChordAndMelody(chordNotes: chordNotes, melodyNote: melody.noteName)
+            playChordMelody(chordNotes: chordNotes, melodyNote: melody.noteName)
             try? await Task.sleep(nanoseconds: UInt64(chordMelodyDur * 1_000_000_000))
             if Task.isCancelled { return }
 
@@ -391,7 +400,7 @@ class ProgressionPlayer: ObservableObject {
             if Task.isCancelled { return }
 
             // 5. Play melody only
-            audioManager.playMelodyOnly(note: melody.noteName)
+            playNoteAlone(note: melody.noteName)
             try? await Task.sleep(nanoseconds: UInt64(melodyOnlyDur * 1_000_000_000))
             if Task.isCancelled { return }
 
@@ -400,6 +409,53 @@ class ProgressionPlayer: ObservableObject {
         }
 
         // Let sounds decay naturally - don't stop abruptly
+    }
+
+    // MARK: - Playback Helpers
+    //
+    // `chordNotes` are assumed to be at `chordOctaves` (3-4): low-mid register
+    // for harmonic support. The `melodyNote` is assumed to be at `melodyOctaves`
+    // (5-6): high register to sit clearly above the chord.
+    //
+    // Use these wrappers instead of calling `audioManager` directly — they make
+    // the intended role of each note (harmony vs melody) explicit at the
+    // call site.
+
+    /// Chord in the low-mid register + melody note on top.
+    /// Standard "chord with a melody note" texture.
+    private func playChordMelody(chordNotes: [String], melodyNote: String) {
+        audioManager.playChordAndMelody(chordNotes: chordNotes, melodyNote: melodyNote)
+    }
+
+    /// Just the melody note in the high register, no chord.
+    private func playNoteAlone(note: String) {
+        audioManager.playMelodyOnly(note: note)
+    }
+
+    /// Pick a random octave from `melodyOctaves` (5-6) and play the given
+    /// solfege degree as a single melody note. Returns the resolved note name
+    /// so the caller can remember it (e.g. for repeat/reveal).
+    @discardableResult
+    private func playMelodyNote(_ degree: String, key: Key) -> String {
+        let octave = melodyOctaves.randomElement() ?? 5
+        let noteName = key.solfegeToNote(degree, octave: octave)
+        audioManager.playMelodyOnly(note: noteName)
+        return noteName
+    }
+
+    /// Play a chord in the mid register (4-5), sitting one octave higher than
+    /// the default low chord (3-4). Useful when a low voicing would be too
+    /// muddy (e.g. when played alone without a melody on top).
+    @discardableResult
+    private func playMidChord(_ chordDef: ChordDefinition, key: Key) -> [String] {
+        let midOctaves = [4, 5]
+        var notes: [String] = []
+        for deg in chordDef.degrees.prefix(3) {
+            let octave = midOctaves.randomElement() ?? 4
+            notes.append(key.solfegeToNote(deg, octave: octave))
+        }
+        audioManager.playChordAndMelody(chordNotes: notes, melodyNote: "")
+        return notes
     }
 
     private func getChordNotes(chordDef: ChordDefinition, key: Key) -> [String] {

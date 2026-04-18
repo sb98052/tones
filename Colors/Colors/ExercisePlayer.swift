@@ -255,6 +255,7 @@ class ExercisePlayer: ObservableObject {
         print("Chord mode — \(chordKey) | chord degrees: \(chord.degrees) | chord voicing: \(fullChordNotes) | chord tone: \(chordTone) → \(melodyNote)")
 
         // 3. Play chord alone
+        print("[ChordMode] step 1: chord alone")
         audioManager.playChordWithMelody(chordNotes: fullChordNotes, melodyNote: "")
         try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
         if Task.isCancelled { return }
@@ -264,6 +265,7 @@ class ExercisePlayer: ObservableObject {
         }
 
         // 4. Play note alone
+        print("[ChordMode] step 2: note alone")
         audioManager.playMelodyOnly(note: melodyNote)
         try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
         if Task.isCancelled { return }
@@ -273,6 +275,7 @@ class ExercisePlayer: ObservableObject {
         }
 
         // 5. Play chord + note
+        print("[ChordMode] step 3: chord + note")
         audioManager.playChordWithMelody(chordNotes: chordNotesWithoutMelody, melodyNote: melodyNote)
         try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
         if Task.isCancelled { return }

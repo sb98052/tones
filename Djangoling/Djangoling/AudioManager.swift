@@ -54,6 +54,7 @@ class AudioManager: NSObject, ObservableObject {
     }
 
     func playChordAndMelody(chordNotes: [String], melodyNote: String) {
+        print("[AudioManager] playChordAndMelody chord=\(chordNotes) melody='\(melodyNote)'")
         // Clean up finished players without stopping active ones
         cleanupFinishedPlayers()
 
@@ -63,6 +64,8 @@ class AudioManager: NSObject, ObservableObject {
                 player.volume = chordVolume
                 player.play()
                 audioPlayers.append(player)
+            } else {
+                print("[AudioManager] missing sound for chord note: '\(note)'")
             }
         }
 
@@ -71,10 +74,13 @@ class AudioManager: NSObject, ObservableObject {
             player.volume = melodyVolume
             player.play()
             audioPlayers.append(player)
+        } else if !melodyNote.isEmpty {
+            print("[AudioManager] missing sound for melody: '\(melodyNote)'")
         }
     }
 
     func playMelodyOnly(note: String) {
+        print("[AudioManager] playMelodyOnly note='\(note)'")
         // Clean up finished players without stopping active ones
         cleanupFinishedPlayers()
 
@@ -82,6 +88,8 @@ class AudioManager: NSObject, ObservableObject {
             player.volume = melodyVolume
             player.play()
             audioPlayers.append(player)
+        } else {
+            print("[AudioManager] missing sound for melody: '\(note)'")
         }
     }
 
