@@ -69,13 +69,15 @@ class AudioManager: NSObject, ObservableObject {
             }
         }
 
-        // Play melody note
-        if let player = loadSound(note: melodyNote) {
-            player.volume = melodyVolume
-            player.play()
-            audioPlayers.append(player)
-        } else if !melodyNote.isEmpty {
-            print("[AudioManager] missing sound for melody: '\(melodyNote)'")
+        // Play melody note (skip if empty — caller asking for chord alone)
+        if !melodyNote.isEmpty {
+            if let player = loadSound(note: melodyNote) {
+                player.volume = melodyVolume
+                player.play()
+                audioPlayers.append(player)
+            } else {
+                print("[AudioManager] missing sound for melody: '\(melodyNote)'")
+            }
         }
     }
 
