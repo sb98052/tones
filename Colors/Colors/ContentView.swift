@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var guitarMode: Bool = false
     @State private var chordsOnly: Bool = true
     @State private var chordMode: Bool = false
+    @State private var audiation: Bool = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -113,6 +114,11 @@ struct ContentView: View {
                 Toggle("Guitar", isOn: $guitarMode)
                     .onChange(of: guitarMode) { _, newValue in
                         player.guitarMode = newValue
+                        // Guitar mode and audiation don't compose
+                        if newValue {
+                            audiation = false
+                            player.audiation = false
+                        }
                     }
                     .disabled(player.state != .stopped)
 
@@ -127,6 +133,12 @@ struct ContentView: View {
                         player.chordMode = newValue
                     }
                     .disabled(player.state != .stopped)
+
+                Toggle("Audiation Mode", isOn: $audiation)
+                    .onChange(of: audiation) { _, newValue in
+                        player.audiation = newValue
+                    }
+                    .disabled(player.state != .stopped || guitarMode)
             }
             .padding(.horizontal)
 
@@ -221,6 +233,7 @@ struct ContentView: View {
                         player.guitarMode = guitarMode
                         player.skipNakedNote = chordsOnly
                         player.chordMode = chordMode
+                        player.audiation = audiation && !guitarMode
                         player.start()
                     }) {
                         Image(systemName: "play.fill")

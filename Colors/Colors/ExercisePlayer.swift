@@ -34,6 +34,7 @@ class ExercisePlayer: ObservableObject {
     var guitarMode: Bool = false
     var skipNakedNote: Bool = false  // Skip playing melody note alone, only play with chords
     var chordMode: Bool = false  // Pick random chord, play chord → note → chord+note
+    var audiation: Bool = false  // Announce solfege first, then play (give ear time to imagine)
 
     // MARK: - Guitar Mode State
 
@@ -140,6 +141,10 @@ class ExercisePlayer: ObservableObject {
     private func runExercise() async {
         if chordMode {
             await runChordModeExercise()
+            return
+        }
+        if audiation {
+            await runAudiationExercise()
             return
         }
 
@@ -264,6 +269,16 @@ class ExercisePlayer: ObservableObject {
             if Task.isCancelled { return }
         }
 
+        // Audiation: announce the solfege *before* playing the note, so the
+        // student can imagine the pitch against the chord they just heard.
+        if audiation && !guitarMode {
+            let pron = solfegePronunciation[chordTone] ?? chordTone
+            print("[ChordMode] step 2a: speak solfege (audiation)")
+            await speakText(pron)
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            if Task.isCancelled { return }
+        }
+
         // 4. Play note alone
         print("[ChordMode] step 2: note alone")
         audioManager.playMelodyOnly(note: melodyNote)
@@ -280,14 +295,88 @@ class ExercisePlayer: ObservableObject {
         try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
         if Task.isCancelled { return }
 
-        // 6. Announce (or wait for reveal in guitar mode)
+        // 6. Announce (or wait for reveal in guitar mode).
+        // In audiation mode the solfege was announced before step 2, so skip
+        // the trailing announcement.
         if guitarMode {
             pendingDegree = chordTone
             pendingChords = [chordKey]
             canReveal = true
-        } else {
+        } else if !audiation {
             await announceResults(degree: chordTone, chords: [chordKey])
         }
+    }
+
+    // MARK: - Audiation (degree-cycling mode)
+
+    private func runAudiationExercise() async {
+        guard let key = currentKey else { return }
+
+        // Pick a random scale degree
+        let degree = diatonicDegrees.randomElement()!
+        currentDegree = degree
+
+        // Find chords that contain this degree
+        let chords = chordsContainingDegree(degree, enabledChords: enabledChords)
+        guard !chords.isEmpty else { return }
+
+        let shuffledChords = chords.shuffled()
+        currentChords = shuffledChords
+
+        let melodyNote = key.solfegeToNote(degree, octave: melodyOctave)
+        lastMelodyNote = melodyNote
+        let degreePronunciation = solfegePronunciation[degree] ?? degree
+
+        // 1. Announce the solfege first — student audiates before hearing it
+        announcement = degreePronunciation
+        await speakText(degreePronunciation)
+        try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+        if Task.isCancelled { return }
+
+        // 2. Play the melody note alone to confirm (unless Chords Only)
+        if !skipNakedNote {
+            audioManager.playMelodyOnly(note: melodyNote)
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            if Task.isCancelled { return }
+        }
+
+        // 3. For each chord: announce "over chord", wait to audiate, then play
+        var allChordVoicings: [[String]] = []
+        for chordKey in shuffledChords {
+            guard state != .stopped else { return }
+            while state == .paused {
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                if Task.isCancelled { return }
+            }
+
+            guard let chord = chordDefinitions[chordKey] else {
+                allChordVoicings.append([])
+                continue
+            }
+
+            let rootPronunciation = solfegePronunciation[chord.root] ?? chord.root
+            let chordName = chordKey == "mi_dom" ? "\(rootPronunciation) dominant" : rootPronunciation
+            let text = "over \(chordName)"
+            announcement = "\(degreePronunciation), \(text)"
+            await speakText(text)
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            if Task.isCancelled { return }
+
+            // Build chord notes (excluding the melody degree to avoid doubling)
+            var chordNotes: [String] = []
+            for chordDegree in chord.degrees {
+                if chordDegree != degree {
+                    let octave = chordOctaves.randomElement() ?? 3
+                    chordNotes.append(key.solfegeToNote(chordDegree, octave: octave))
+                }
+            }
+            allChordVoicings.append(chordNotes)
+
+            audioManager.playChordWithMelody(chordNotes: chordNotes, melodyNote: melodyNote)
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            if Task.isCancelled { return }
+        }
+        lastChordVoicings = allChordVoicings
     }
 
     func revealAnswer() {
