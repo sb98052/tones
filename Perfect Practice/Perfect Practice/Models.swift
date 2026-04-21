@@ -178,7 +178,31 @@ func chordStyleMap(for progression: Progression) -> [String: ChordStyle] {
 
 // MARK: - Key of the Day
 
-/// Deterministic key for any given date. Same date always returns the same key.
+/// Gypsy Jazz key frequency distribution.
+/// Each entry: (key signature index, mode, weight from repertoire analysis).
+private let gypsyKeyDistribution: [(sigIndex: Int, mode: Mode, weight: Int)] = [
+    // Major keys
+    (0,  .major, 27),  // C major
+    (1,  .major, 29),  // G major
+    (2,  .major, 24),  // F major
+    (3,  .major, 17),  // D major
+    (4,  .major, 7),   // A major
+    (5,  .major, 5),   // E major
+    (8,  .major, 19),  // Bb major
+    (9,  .major, 7),   // Eb major
+    (10, .major, 4),   // Ab major
+    // Minor keys
+    (0,  .minor, 12),  // A minor
+    (1,  .minor, 17),  // E minor
+    (2,  .minor, 15),  // D minor
+    (3,  .minor, 6),   // B minor
+    (8,  .minor, 11),  // G minor
+    (9,  .minor, 5),   // C minor
+    (10, .minor, 1),   // F minor
+]
+
+/// Deterministic key for any given date, weighted by Gypsy Jazz repertoire frequency.
+/// Same date always returns the same key.
 func keyOfTheDay(date: Date = Date()) -> (name: String, key: Key) {
     // Fixed seed — never change this
     let seed: UInt64 = 0xA77D_1E42_B39C_F015
@@ -191,14 +215,23 @@ func keyOfTheDay(date: Date = Date()) -> (name: String, key: Key) {
     let hash = seed &* UInt64(bitPattern: Int64(dayIndex) &* 2654435761)
     let n = Int(hash >> 16) // drop low bits
 
-    // Pick key signature and mode
-    let sigIndex = ((n % keySignatures.count) + keySignatures.count) % keySignatures.count
-    let modeIndex = ((n / keySignatures.count) % 2 + 2) % 2
-    let mode: Mode = modeIndex == 0 ? .minor : .major
-    let sig = keySignatures[sigIndex]
-    let key = Key(signature: sig, mode: mode)
+    // Weighted selection from Gypsy Jazz distribution
+    let totalWeight = gypsyKeyDistribution.reduce(0) { $0 + $1.weight }
+    let roll = ((n % totalWeight) + totalWeight) % totalWeight
 
-    let tonic = mode == .minor ? sig[5] : sig[0]
+    var cumulative = 0
+    var chosen = gypsyKeyDistribution[0]
+    for entry in gypsyKeyDistribution {
+        cumulative += entry.weight
+        if roll < cumulative {
+            chosen = entry
+            break
+        }
+    }
+
+    let sig = keySignatures[chosen.sigIndex]
+    let key = Key(signature: sig, mode: chosen.mode)
+    let tonic = chosen.mode == .minor ? sig[5] : sig[0]
     return (name: tonic, key: key)
 }
 

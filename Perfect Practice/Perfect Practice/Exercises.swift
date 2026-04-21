@@ -124,7 +124,8 @@ struct ExerciseSpec: Identifiable {
     let params: AtomParams
     let notes: [String]  // "1"-"7" for diatonic, "#6" for raised, "b3" for lowered
     let playstyle: String  // "arpeggio" or "chord"
-    let group: Int         // group number for uniform probability distribution
+    let group: Int         // group number for probability distribution
+    let groupWeight: Double // weight for this group (default 1.0)
     let disabled: Bool
 
     func generate(chordKey: String = "", rotate: Bool = false) -> Exercise {
@@ -317,7 +318,7 @@ class ExerciseCatalog: ObservableObject {
     }
 
     /// Generate a random exercise for the given chord.
-    /// Picks a group uniformly at random, then a random exercise within that group.
+    /// Picks a group via weighted random selection, then a random exercise within that group.
     func generateForChord(_ chordKey: String, enabled: Set<String>, rotate: Bool = false) -> Exercise? {
         let matching = exercisesForChord(chordKey, enabled: enabled)
         guard !matching.isEmpty else { return nil }
@@ -328,9 +329,21 @@ class ExerciseCatalog: ObservableObject {
             groups[spec.group, default: []].append(spec)
         }
 
-        // Pick a random group, then a random exercise within it
-        guard let groupExercises = groups.values.randomElement(),
-              let spec = groupExercises.randomElement() else { return nil }
+        // Weighted group selection — each group's weight is the max groupWeight of its members
+        let groupEntries = groups.map { (key: $0.key, specs: $0.value, weight: $0.value.map(\.groupWeight).max() ?? 1.0) }
+        let totalWeight = groupEntries.reduce(0.0) { $0 + $1.weight }
+        let roll = Double.random(in: 0..<totalWeight)
+        var cumulative = 0.0
+        var chosen = groupEntries[0].specs
+        for entry in groupEntries {
+            cumulative += entry.weight
+            if roll < cumulative {
+                chosen = entry.specs
+                break
+            }
+        }
+
+        guard let spec = chosen.randomElement() else { return nil }
         return spec.generate(chordKey: chordKey, rotate: rotate)
     }
 
@@ -403,6 +416,7 @@ class ExerciseCatalog: ObservableObject {
         let category = dict["category"] as? String ?? "arpeggio"
         let playstyle = dict["playstyle"] as? String ?? "arpeggio"
         let group = dict["group"] as? Int ?? 0
+        let groupWeight = dict["groupweight"] as? Double ?? 1.0
         let disabled = dict["disabled"] as? Bool ?? false
 
         return ExerciseSpec(
@@ -418,6 +432,7 @@ class ExerciseCatalog: ObservableObject {
             notes: notes,
             playstyle: playstyle,
             group: group,
+            groupWeight: groupWeight,
             disabled: disabled
         )
     }
