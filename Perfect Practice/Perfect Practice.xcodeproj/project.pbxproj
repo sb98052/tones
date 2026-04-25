@@ -15,6 +15,7 @@
 		AA00000000000000000000A6 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B6 /* Models.swift */; };
 		AA00000000000000000000A7 /* PracticeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B7 /* PracticeEngine.swift */; };
 		AA00000000000000000000AB /* VoiceCommandManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000BB /* VoiceCommandManager.swift */; };
+		AA00000000000000000000AC /* RecordingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000BC /* RecordingManager.swift */; };
 		AA00000000000000000000A8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B8 /* Assets.xcassets */; };
 		AA00000000000000000000A9 /* exercises.json in Resources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B9 /* exercises.json */; };
 		AA00000000000000000000AA /* metronome.wav in Resources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000BA /* metronome.wav */; };
@@ -78,6 +79,7 @@
 		AA00000000000000000000B6 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		AA00000000000000000000B7 /* PracticeEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeEngine.swift; sourceTree = "<group>"; };
 		AA00000000000000000000BB /* VoiceCommandManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCommandManager.swift; sourceTree = "<group>"; };
+		AA00000000000000000000BC /* RecordingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingManager.swift; sourceTree = "<group>"; };
 		AA00000000000000000000B8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AA00000000000000000000B9 /* exercises.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = exercises.json; sourceTree = "<group>"; };
 		AA00000000000000000000BA /* metronome.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = metronome.wav; sourceTree = "<group>"; };
@@ -169,6 +171,7 @@
 				AA00000000000000000000B6 /* Models.swift */,
 				AA00000000000000000000B7 /* PracticeEngine.swift */,
 				AA00000000000000000000BB /* VoiceCommandManager.swift */,
+				AA00000000000000000000BC /* RecordingManager.swift */,
 				AA00000000000000000000B8 /* Assets.xcassets */,
 				AA00000000000000000000B9 /* exercises.json */,
 				AA00000000000000000000BA /* metronome.wav */,
@@ -362,6 +365,7 @@
 				AA00000000000000000000A6 /* Models.swift in Sources */,
 				AA00000000000000000000A7 /* PracticeEngine.swift in Sources */,
 				AA00000000000000000000AB /* VoiceCommandManager.swift in Sources */,
+				AA00000000000000000000AC /* RecordingManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -24,7 +24,7 @@ class AudioManager: NSObject, ObservableObject {
         do {
             let session = AVAudioSession.sharedInstance()
             // Use .playback for background audio, no mixing/ducking options for crisp sound
-            try session.setCategory(.playback, mode: .default, options: [])
+            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
             try session.setActive(true, options: [])
         } catch {
             print("Failed to configure audio session: \(error)")

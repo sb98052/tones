@@ -232,7 +232,32 @@ func keyOfTheDay(date: Date = Date()) -> (name: String, key: Key) {
     let sig = keySignatures[chosen.sigIndex]
     let key = Key(signature: sig, mode: chosen.mode)
     let tonic = chosen.mode == .minor ? sig[5] : sig[0]
-    return (name: tonic, key: key)
+    let name = chosen.mode == .minor ? "\(tonic)m" : "\(tonic)maj"
+    return (name: name, key: key)
+}
+
+// MARK: - Pitch Class & Transposition
+
+/// Pitch class integers (C=0 through B=11)
+let noteToPitchClass: [String: Int] = [
+    "C": 0, "C#": 1, "Db": 1, "D": 2, "D#": 3, "Eb": 3,
+    "E": 4, "F": 5, "F#": 6, "Gb": 6, "G": 7, "G#": 8,
+    "Ab": 8, "A": 9, "A#": 10, "Bb": 10, "B": 11, "Cb": 11,
+    "E#": 5, "Fb": 4
+]
+
+/// Get the pitch class (0-11) for a Key's tonic
+func pitchClassForKey(_ key: Key) -> Int {
+    let tonic = key.mode == .minor ? key.signature[5] : key.signature[0]
+    return noteToPitchClass[tonic] ?? 0
+}
+
+/// Nearest transposition in semitones from source to target key.
+/// Always chooses the smallest absolute movement (-5 to +6).
+func nearestTranspose(from sourceKey: Int, to targetKey: Int) -> Int {
+    var delta = (targetKey - sourceKey + 12) % 12
+    if delta > 6 { delta -= 12 }
+    return delta
 }
 
 // MARK: - Solfege-to-Semitone Mapping (for audio playback)

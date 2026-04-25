@@ -24,6 +24,8 @@ class PracticeEngine: ObservableObject {
     @Published var currentChordName: String = ""
     @Published var nextChordName: String = ""
     @Published var currentBeat: Int = 0
+    @Published var currentRecordingExists: Bool = false
+    @Published var nextRecordingExists: Bool = false
 
     // MARK: - Settings
 
@@ -34,6 +36,7 @@ class PracticeEngine: ObservableObject {
     var rotate: Bool = false
     var debugMode: Bool = false
     var playMode: Bool = false
+    var soundMode: Bool = false
 
     // MARK: - Private Properties
 
@@ -43,6 +46,7 @@ class PracticeEngine: ObservableObject {
     private let catalog = ExerciseCatalog.shared
     private let audioManager = AudioManager.shared
     private let speechManager = SpeechManager.shared
+    let recordingManager = RecordingManager()
     private var advanceRequested = false
     private var lastAdvanceTime: Date = .distantPast
 
@@ -80,11 +84,15 @@ class PracticeEngine: ObservableObject {
         metronomePlayer = nil
         audioManager.stopAll()
         speechManager.stop()
+        recordingManager.cancelRecording()
+        recordingManager.stopPlayback()
         currentExercise = nil
         nextExercise = nil
         currentChordName = ""
         nextChordName = ""
         currentBeat = 0
+        currentRecordingExists = false
+        nextRecordingExists = false
     }
 
     func togglePause() {
@@ -107,7 +115,12 @@ class PracticeEngine: ObservableObject {
     private func configureAudioSession() {
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [])
+            if soundMode {
+                try session.setCategory(.playAndRecord, mode: .default,
+                                        options: [.defaultToSpeaker, .allowBluetoothHFP])
+            } else {
+                try session.setCategory(.playback, mode: .default, options: [])
+            }
             try session.setActive(true, options: [])
         } catch {
             print("Failed to configure audio session: \(error)")
@@ -143,12 +156,108 @@ class PracticeEngine: ObservableObject {
     private func startPlaybackLoop() {
         if debugMode {
             startDebugLoop()
+        } else if soundMode {
+            startSoundModeLoop()
         } else if playMode {
             startPlayLoop()
         } else if warmUp {
             startWarmUpLoop()
         } else {
             startMetronomeLoop()
+        }
+    }
+
+    // MARK: - Sound Mode Recording Control
+
+    func armRecording() {
+        recordingManager.arm()
+    }
+
+    func startRecording() {
+        guard let exercise = currentExercise else { return }
+        let hashKey = exercise.recordingHashKey(chordKey: currentChordName)
+        recordingManager.startRecording(hashKey: hashKey)
+    }
+
+    func stopRecording() {
+        let sourceKeyPitch = pitchClassForKey(keyOfTheDay().key)
+        recordingManager.stopRecordingAndSave(sourceKeyPitch: sourceKeyPitch)
+        if let exercise = currentExercise {
+            currentRecordingExists = recordingManager.recordingExists(
+                for: exercise.recordingHashKey(chordKey: currentChordName))
+        }
+    }
+
+    func playCurrentRecording() {
+        guard let exercise = currentExercise else { return }
+        let hashKey = exercise.recordingHashKey(chordKey: currentChordName)
+        let targetKeyPitch = pitchClassForKey(keyOfTheDay().key)
+        recordingManager.playRecording(hashKey: hashKey, targetKeyPitch: targetKeyPitch)
+    }
+
+    func reRecord() {
+        guard let exercise = currentExercise else { return }
+        let hashKey = exercise.recordingHashKey(chordKey: currentChordName)
+        recordingManager.deleteRecording(hashKey: hashKey)
+        currentRecordingExists = false
+    }
+
+    private func updateRecordingFlags() {
+        if let ex = currentExercise {
+            currentRecordingExists = recordingManager.recordingExists(
+                for: ex.recordingHashKey(chordKey: currentChordName))
+        }
+        if let ex = nextExercise {
+            nextRecordingExists = recordingManager.recordingExists(
+                for: ex.recordingHashKey(chordKey: nextChordName))
+        }
+    }
+
+    private func startSoundModeLoop() {
+        playbackTask = Task { @MainActor in
+            var isFirstChord = true
+            while state != .stopped {
+                guard let prog = progression else { break }
+
+                for i in 0..<prog.chords.count {
+                    guard state != .stopped else { return }
+
+                    currentChordName = prog.chords[i]
+                    let nextIndex = (i + 1) % prog.chords.count
+                    nextChordName = prog.chords[nextIndex]
+
+                    if isFirstChord {
+                        isFirstChord = false
+                    } else {
+                        currentExercise = nextExercise
+                        nextExercise = catalog.generateForChord(nextChordName, enabled: enabledExercises, rotate: rotate)
+                    }
+
+                    updateRecordingFlags()
+
+                    // If recording exists, auto-play it (transposed to current key)
+                    if let exercise = currentExercise, currentRecordingExists {
+                        let hashKey = exercise.recordingHashKey(chordKey: currentChordName)
+                        let targetKeyPitch = pitchClassForKey(keyOfTheDay().key)
+                        recordingManager.playRecording(hashKey: hashKey, targetKeyPitch: targetKeyPitch)
+
+                        // Wait for playback to finish
+                        while recordingManager.state == .playing {
+                            guard state != .stopped else { return }
+                            try? await Task.sleep(nanoseconds: 100_000_000)
+                            if Task.isCancelled { return }
+                        }
+                    }
+
+                    // Wait for pedal press to advance
+                    advanceRequested = false
+                    while !advanceRequested {
+                        guard state != .stopped else { return }
+                        try? await Task.sleep(nanoseconds: 100_000_000)
+                        if Task.isCancelled { return }
+                    }
+                }
+            }
         }
     }
 

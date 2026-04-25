@@ -46,6 +46,14 @@ struct KeyPressView: UIViewControllerRepresentable {
 struct ContentView: View {
     @StateObject private var engine = PracticeEngine()
     @StateObject private var voiceCommands = VoiceCommandManager()
+    @ObservedObject private var recordingMgr: RecordingManager
+
+    init() {
+        let eng = PracticeEngine()
+        _engine = StateObject(wrappedValue: eng)
+        _voiceCommands = StateObject(wrappedValue: VoiceCommandManager())
+        _recordingMgr = ObservedObject(wrappedValue: eng.recordingManager)
+    }
 
     @State private var selectedProgression = "minor_swing"
     @State private var bpm: Double = 120
@@ -54,6 +62,8 @@ struct ContentView: View {
     @State private var warmUp = true
     @State private var rotate = true
     @State private var playMode = false
+    @State private var soundMode = true
+    @State private var showRelativeMinor = false
     @ObservedObject private var catalog = ExerciseCatalog.shared
 
     private var progressionKeys: [String] {
@@ -125,10 +135,15 @@ struct ContentView: View {
                     voiceCommands.startListening()
                 }
 
-            // Key of the day
-            Text(keyOfTheDay().name)
+            // Key of the day (tap to flip major/relative minor)
+            let kotd = keyOfTheDay()
+            let sig = kotd.key.signature
+            let majorName = "\(sig[0])maj"
+            let minorName = "\(sig[5])m"
+            Text(showRelativeMinor ? minorName : majorName)
                 .font(.title3)
                 .foregroundColor(.secondary)
+                .onTapGesture { showRelativeMinor.toggle() }
 
             // Progression Picker
             VStack(alignment: .leading, spacing: 8) {
@@ -183,6 +198,10 @@ struct ContentView: View {
             Toggle("Play", isOn: $playMode)
                 .padding(.horizontal)
 
+            // Sound (recording-based) toggle
+            Toggle("Sound", isOn: $soundMode)
+                .padding(.horizontal)
+
             Spacer()
 
             // Play button
@@ -193,10 +212,13 @@ struct ContentView: View {
                 engine.warmUp = warmUp
                 engine.rotate = rotate
                 engine.playMode = playMode
+                engine.soundMode = soundMode
                 engine.debugMode = false
                 engine.start(progressionKey: selectedProgression)
-                voiceCommands.onCommand = { engine.advance() }
-                voiceCommands.startListening()
+                if !soundMode {
+                    voiceCommands.onCommand = { engine.advance() }
+                    voiceCommands.startListening()
+                }
             }) {
                 Image(systemName: "play.fill")
                     .font(.system(size: 40))
@@ -239,7 +261,9 @@ struct ContentView: View {
             exerciseGraphicCard(
                 exercise: engine.currentExercise,
                 chordKey: engine.currentChordName,
-                showLabel: $showCurrentLabel
+                showLabel: $showCurrentLabel,
+                recordingExists: engine.soundMode ? engine.currentRecordingExists : false,
+                isSoundMode: engine.soundMode
             )
             .frame(maxHeight: .infinity)
 
@@ -249,7 +273,9 @@ struct ContentView: View {
             exerciseGraphicCard(
                 exercise: engine.nextExercise,
                 chordKey: engine.nextChordName,
-                showLabel: $showNextLabel
+                showLabel: $showNextLabel,
+                recordingExists: engine.soundMode ? engine.nextRecordingExists : false,
+                isSoundMode: engine.soundMode
             )
             .frame(maxHeight: .infinity)
 
@@ -281,13 +307,37 @@ struct ContentView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            if engine.warmUp || engine.debugMode {
+            if engine.soundMode {
+                // In sound mode, tap reveals the exercise or advances
+                if engine.currentRecordingExists {
+                    showCurrentLabel = true
+                } else {
+                    engine.advance()
+                }
+            } else if engine.warmUp || engine.debugMode {
                 engine.advance()
             }
         }
         .background(
-            KeyPressView { _ in
-                if engine.warmUp || engine.debugMode {
+            KeyPressView { press in
+                let isLeftPedal = press.key?.keyCode == .keyboardUpArrow
+                let isRightPedal = press.key?.keyCode == .keyboardDownArrow
+
+                if engine.soundMode {
+                    if isLeftPedal {
+                        // Left pedal: start/stop recording when armed
+                        if recordingMgr.state == .armed {
+                            engine.startRecording()
+                        } else if recordingMgr.state == .recording {
+                            engine.stopRecording()
+                        } else {
+                            engine.advance()
+                        }
+                    } else {
+                        // Right pedal or any other key: advance
+                        engine.advance()
+                    }
+                } else if engine.warmUp || engine.debugMode {
                     engine.advance()
                 }
             }
@@ -299,17 +349,81 @@ struct ContentView: View {
     private func exerciseGraphicCard(
         exercise: Exercise?,
         chordKey: String,
-        showLabel: Binding<Bool>
+        showLabel: Binding<Bool>,
+        recordingExists: Bool = false,
+        isSoundMode: Bool = false
     ) -> some View {
         Group {
             if let exercise = exercise {
                 let style = chordStyles[chordKey] ?? ChordStyle(color: .gray, dashed: false)
                 let graphic = parseGraphic(exercise: exercise, chordKey: chordKey, style: style)
-                ExerciseGraphicView(graphic: graphic)
+
+                if isSoundMode && recordingExists && !showLabel.wrappedValue {
+                    // Sound mode with recording: hidden graphic, show chord key + speaker
+                    VStack(spacing: 12) {
+                        Image(systemName: recordingMgr.state == .playing ? "speaker.wave.2.fill" : "speaker.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(style.color)
+                        Text(displayName(for: chordKey))
+                            .font(.title2)
+                            .foregroundColor(style.color)
+                    }
                     .onTapGesture {
                         showLabel.wrappedValue = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    }
+                } else {
+                    // Normal mode, or sound mode without recording, or revealed
+                    ExerciseGraphicView(graphic: graphic)
+                        .overlay(alignment: .topTrailing) {
+                            if isSoundMode {
+                                HStack(spacing: 8) {
+                                    // Play button (if recording exists)
+                                    if recordingExists {
+                                        Button(action: { engine.playCurrentRecording() }) {
+                                            Image(systemName: recordingMgr.state == .playing
+                                                  ? "speaker.wave.2.fill" : "play.circle")
+                                                .font(.system(size: 24))
+                                                .foregroundColor(.green.opacity(0.7))
+                                        }
+                                    }
+
+                                    // Record button
+                                    Button(action: {
+                                        if recordingMgr.state == .recording {
+                                            engine.stopRecording()
+                                        } else if recordingMgr.state == .armed {
+                                            recordingMgr.disarm()
+                                        } else {
+                                            engine.armRecording()
+                                        }
+                                    }) {
+                                        if recordingMgr.state == .recording {
+                                            Circle()
+                                                .fill(Color.red)
+                                                .frame(width: 20, height: 20)
+                                        } else if recordingMgr.state == .armed {
+                                            Image(systemName: "mic.circle.fill")
+                                                .font(.system(size: 28))
+                                                .foregroundColor(.red)
+                                        } else {
+                                            Image(systemName: "mic.circle")
+                                                .font(.system(size: 28))
+                                                .foregroundColor(.red.opacity(0.5))
+                                        }
+                                    }
+                                }
+                                .padding(12)
+                            }
+                        }
+                    .onTapGesture {
+                        if isSoundMode && recordingExists {
+                            // Revealed state: tap again to hide
                             showLabel.wrappedValue = false
+                        } else {
+                            showLabel.wrappedValue = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                showLabel.wrappedValue = false
+                            }
                         }
                     }
                     .overlay(alignment: .bottom) {
@@ -321,6 +435,14 @@ struct ContentView: View {
                                 if let degree = graphic.chordDegree {
                                     chordDegreeOverlay(degree: degree, color: graphic.chordColor)
                                 }
+                                if isSoundMode && recordingExists {
+                                    Button(action: { engine.reRecord() }) {
+                                        Label("Re-record", systemImage: "mic.badge.xmark")
+                                            .font(.caption2)
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .tint(.red)
+                                }
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
@@ -330,6 +452,7 @@ struct ContentView: View {
                         }
                     }
                     .animation(.easeInOut(duration: 0.2), value: showLabel.wrappedValue)
+                }
             }
         }
         .padding(12)

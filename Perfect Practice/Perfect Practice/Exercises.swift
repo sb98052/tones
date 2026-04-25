@@ -26,6 +26,17 @@ struct Exercise {
     let startNote: String?  // chord tone solfege, e.g. "mi"
     let playstyle: String   // "arpeggio" or "chord"
     let maxPosition: Int    // from exercise spec's max_position
+
+    /// Deterministic hash key for recording lookup.
+    func recordingHashKey(chordKey: String) -> String {
+        let specId = typeName.lowercased().replacingOccurrences(of: " ", with: "_")
+        let lines = displayLines.map { $0.value.trimmingCharacters(in: .whitespaces) }.joined(separator: "-")
+        let suffix = titleSuffix.trimmingCharacters(in: .whitespaces)
+        let note = startNote ?? "none"
+        let raw = [specId, chordKey, lines, suffix, note].joined(separator: "__")
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_-"))
+        return raw.unicodeScalars.map { allowed.contains($0) ? String($0) : "_" }.joined()
+    }
 }
 
 // MARK: - Atom Parameters
