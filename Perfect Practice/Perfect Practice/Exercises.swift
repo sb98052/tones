@@ -26,14 +26,22 @@ struct Exercise {
     let startNote: String?  // chord tone solfege, e.g. "mi"
     let playstyle: String   // "arpeggio" or "chord"
     let maxPosition: Int    // from exercise spec's max_position
+    let chordAgnostic: Bool // same recording regardless of chord
 
-    /// Deterministic hash key for recording lookup.
+    /// Deterministic hash key for recording lookup (excludes startNote — recorded separately).
     func recordingHashKey(chordKey: String) -> String {
         let specId = typeName.lowercased().replacingOccurrences(of: " ", with: "_")
         let lines = displayLines.map { $0.value.trimmingCharacters(in: .whitespaces) }.joined(separator: "-")
         let suffix = titleSuffix.trimmingCharacters(in: .whitespaces)
-        let note = startNote ?? "none"
-        let raw = [specId, chordKey, lines, suffix, note].joined(separator: "__")
+        let chord = chordAgnostic ? "any" : chordKey
+        let raw = [specId, chord, lines, suffix].joined(separator: "__")
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_-"))
+        return raw.unicodeScalars.map { allowed.contains($0) ? String($0) : "_" }.joined()
+    }
+
+    /// Hash key for a start note recording.
+    static func noteHashKey(chordKey: String, solfege: String) -> String {
+        let raw = "note__\(chordKey)__\(solfege)"
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_-"))
         return raw.unicodeScalars.map { allowed.contains($0) ? String($0) : "_" }.joined()
     }
@@ -119,6 +127,74 @@ enum Atom: String {
             return []  // marker atom — rendering handled by ExerciseSpec.generate()
         }
     }
+
+    /// Returns all possible outputs for this atom (for studio mode enumeration).
+    /// Each element is one possible set of ExerciseLines this atom could produce.
+    func allValues(params: AtomParams = AtomParams(), multiselectIndex: Int = 0) -> [[ExerciseLine]] {
+        switch self {
+        case .position:
+            return (1...params.maxPosition).map {
+                [ExerciseLine(label: "Position", value: "\($0)", emphasis: true)]
+            }
+
+        case .position2:
+            var results: [[ExerciseLine]] = []
+            for p1 in 1...params.maxPosition {
+                for p2 in 1...params.maxPosition where p2 != p1 {
+                    results.append([ExerciseLine(label: "Positions", value: "\(p1), \(p2)", emphasis: true)])
+                }
+            }
+            return results
+
+        case .permutations:
+            let threePerms = [
+                [1, 2, 3], [1, 3, 2], [2, 1, 3],
+                [2, 3, 1], [3, 1, 2], [3, 2, 1]
+            ]
+            let twoPerms = [[1, 2], [2, 1]]
+            let fmt = { (a: [Int]) in a.map(String.init).joined(separator: " ") }
+            var results: [[ExerciseLine]] = []
+            for t in threePerms {
+                for tw in twoPerms {
+                    let pattern = fmt(t) + ", " + fmt(tw)
+                    results.append([ExerciseLine(label: "Pattern", value: pattern, emphasis: false)])
+                }
+            }
+            return results
+
+        case .updown:
+            return ["Up Up", "Down Down", "Up Down", "Down Up"].map {
+                [ExerciseLine(label: "_suffix", value: $0, emphasis: false)]
+            }
+
+        case .down:
+            return ["Up", "Down"].map {
+                [ExerciseLine(label: "_suffix", value: $0, emphasis: false)]
+            }
+
+        case .multiselect:
+            let lists = params.multiselect
+            guard !lists.isEmpty else { return [[]] }
+            let label = Atom.ordinals[min(multiselectIndex, Atom.ordinals.count - 1)]
+            // Cartesian product of all lists
+            var combos: [[String]] = [[]]
+            for list in lists {
+                var next: [[String]] = []
+                for combo in combos {
+                    for item in list {
+                        next.append(combo + [item])
+                    }
+                }
+                combos = next
+            }
+            return combos.map { combo in
+                [ExerciseLine(label: label, value: combo.joined(separator: " "), emphasis: false)]
+            }
+
+        case .notes:
+            return [[]]
+        }
+    }
 }
 
 // MARK: - Exercise Spec (loaded from JSON)
@@ -135,6 +211,7 @@ struct ExerciseSpec: Identifiable {
     let params: AtomParams
     let notes: [String]  // "1"-"7" for diatonic, "#6" for raised, "b3" for lowered
     let playstyle: String  // "arpeggio" or "chord"
+    let chordAgnostic: Bool // same recording regardless of chord
     let group: Int         // group number for probability distribution
     let groupWeight: Double // weight for this group (default 1.0)
     let disabled: Bool
@@ -190,8 +267,81 @@ struct ExerciseSpec: Identifiable {
             solfegeNotes: solfege,
             startNote: startNote,
             playstyle: playstyle,
-            maxPosition: params.maxPosition
+            maxPosition: params.maxPosition,
+            chordAgnostic: chordAgnostic
         )
+    }
+
+    /// Enumerate all possible exercise configurations for studio mode.
+    func generateAll(chordKey: String = "", rotate: Bool = false) -> [Exercise] {
+        let effectiveAtoms = atoms + (rotate ? rotateAtoms : simpleAtoms)
+        let nonNoteAtoms = effectiveAtoms.filter { $0 != .notes }
+
+        // Get all possible values for each atom
+        var multiselectIdx = 0
+        var atomValueSets: [[[ExerciseLine]]] = []
+        for atom in nonNoteAtoms {
+            let values = atom.allValues(params: params, multiselectIndex: multiselectIdx)
+            atomValueSets.append(values)
+            if atom == .multiselect { multiselectIdx += 1 }
+        }
+
+        // Cartesian product of all atom value sets
+        var allLineCombos: [[[ExerciseLine]]] = [[]]
+        for valueSet in atomValueSets {
+            var next: [[[ExerciseLine]]] = []
+            for existing in allLineCombos {
+                for value in valueSet {
+                    next.append(existing + [value])
+                }
+            }
+            allLineCombos = next
+        }
+
+        // Resolve solfege notes
+        var solfege: [String] = []
+        if effectiveAtoms.contains(.notes), !notes.isEmpty, !chordKey.isEmpty {
+            let degrees: [Any] = notes.map { s -> Any in
+                if let n = Int(s) { return n }
+                return s
+            }
+            solfege = solfegeNotes(for: chordKey, degrees: degrees)
+        }
+
+        // Build all exercises (no startNote multiplication — notes recorded separately)
+        var results: [Exercise] = []
+        for lineCombo in allLineCombos {
+            var allLines = lineCombo.flatMap { $0 }
+
+            // Single multiselect fold into suffix
+            let msCount = effectiveAtoms.filter { $0 == .multiselect }.count
+            if msCount == 1 {
+                allLines = allLines.map { line in
+                    line.label == "First"
+                        ? ExerciseLine(label: "_suffix", value: line.value, emphasis: line.emphasis)
+                        : line
+                }
+            }
+
+            let suffixParts = allLines.filter { $0.label == "_suffix" }.map { $0.value }
+            let displayLines = allLines.filter { $0.label != "_suffix" }
+            let titleSuffix = suffixParts.joined(separator: " ")
+
+            results.append(Exercise(
+                typeName: name,
+                symbol: symbol,
+                category: category,
+                titleSuffix: titleSuffix,
+                displayLines: displayLines,
+                solfegeNotes: solfege,
+                startNote: nil,
+                playstyle: playstyle,
+                maxPosition: params.maxPosition,
+                chordAgnostic: chordAgnostic
+            ))
+        }
+
+        return results
     }
 
     func matchesChord(_ chordKey: String) -> Bool {
@@ -426,6 +576,7 @@ class ExerciseCatalog: ObservableObject {
         let symbol = dict["symbol"] as? String ?? "●"
         let category = dict["category"] as? String ?? "arpeggio"
         let playstyle = dict["playstyle"] as? String ?? "arpeggio"
+        let chordAgnostic = dict["chordagnostic"] as? Bool ?? false
         let group = dict["group"] as? Int ?? 0
         let groupWeight = dict["groupweight"] as? Double ?? 1.0
         let disabled = dict["disabled"] as? Bool ?? false
@@ -442,6 +593,7 @@ class ExerciseCatalog: ObservableObject {
             params: params,
             notes: notes,
             playstyle: playstyle,
+            chordAgnostic: chordAgnostic,
             group: group,
             groupWeight: groupWeight,
             disabled: disabled

@@ -60,10 +60,11 @@ struct ContentView: View {
     @State private var selectedTimeSignature: TimeSignature = .fourQuarter
     @State private var enabledExercises: Set<String> = Set(ExerciseCatalog.shared.exercises.filter { !$0.disabled }.map { $0.id })
     @State private var warmUp = true
-    @State private var rotate = true
+    private let rotate = true
     @State private var playMode = false
     @State private var soundMode = true
     @State private var showRelativeMinor = false
+    @State private var selectedRecordingKey = 7  // G
     @ObservedObject private var catalog = ExerciseCatalog.shared
 
     private var progressionKeys: [String] {
@@ -145,6 +146,22 @@ struct ContentView: View {
                 .foregroundColor(.secondary)
                 .onTapGesture { showRelativeMinor.toggle() }
 
+            // Recording key picker
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Recording Key")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Picker("Key", selection: $selectedRecordingKey) {
+                    ForEach(0..<12, id: \.self) { pc in
+                        Text(["C","Db","D","Eb","E","F","F#","G","Ab","A","Bb","B"][pc]).tag(pc)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal)
+
             // Progression Picker
             VStack(alignment: .leading, spacing: 8) {
                 Text("Progression")
@@ -190,10 +207,6 @@ struct ContentView: View {
             Toggle("Warm Up", isOn: $warmUp)
                 .padding(.horizontal)
 
-            // Rotate toggle
-            Toggle("Rotate", isOn: $rotate)
-                .padding(.horizontal)
-
             // Play (ear training) toggle
             Toggle("Play", isOn: $playMode)
                 .padding(.horizontal)
@@ -204,27 +217,48 @@ struct ContentView: View {
 
             Spacer()
 
-            // Play button
-            Button(action: {
-                engine.bpm = bpm
-                engine.timeSignature = selectedTimeSignature
-                engine.enabledExercises = enabledExercises
-                engine.warmUp = warmUp
-                engine.rotate = rotate
-                engine.playMode = playMode
-                engine.soundMode = soundMode
-                engine.debugMode = false
-                engine.start(progressionKey: selectedProgression)
-                if !soundMode {
-                    voiceCommands.onCommand = { engine.advance() }
-                    voiceCommands.startListening()
+            // Play + Studio buttons
+            HStack(spacing: 30) {
+                Button(action: {
+                    engine.bpm = bpm
+                    engine.timeSignature = selectedTimeSignature
+                    engine.enabledExercises = enabledExercises
+                    engine.warmUp = warmUp
+                    engine.rotate = rotate
+                    engine.playMode = playMode
+                    engine.soundMode = soundMode
+                    engine.recordingKeyPitch = selectedRecordingKey
+                    engine.studioMode = false
+                    engine.debugMode = false
+                    engine.start(progressionKey: selectedProgression)
+                    if !soundMode {
+                        voiceCommands.onCommand = { engine.advance() }
+                        voiceCommands.startListening()
+                    }
+                }) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 40))
+                        .foregroundColor(.green)
                 }
-            }) {
-                Image(systemName: "play.fill")
-                    .font(.system(size: 40))
-                    .foregroundColor(.green)
+                .disabled(enabledExercises.isEmpty)
+
+                // Studio mode button (disabled for now)
+                // Button(action: {
+                //     engine.enabledExercises = enabledExercises
+                //     engine.rotate = rotate
+                //     engine.recordingKeyPitch = selectedRecordingKey
+                //     engine.soundMode = true
+                //     engine.studioMode = true
+                //     engine.debugMode = false
+                //     engine.playMode = false
+                //     engine.start(progressionKey: selectedProgression)
+                // }) {
+                //     Image(systemName: "mic.badge.plus")
+                //         .font(.system(size: 36))
+                //         .foregroundColor(.orange)
+                // }
+                // .disabled(enabledExercises.isEmpty)
             }
-            .disabled(enabledExercises.isEmpty)
             .padding(.bottom, 40)
         }
         .padding()
@@ -258,14 +292,21 @@ struct ContentView: View {
     private var practiceView: some View {
         VStack(spacing: 0) {
             // Top half: current
-            exerciseGraphicCard(
-                exercise: engine.currentExercise,
-                chordKey: engine.currentChordName,
-                showLabel: $showCurrentLabel,
-                recordingExists: engine.soundMode ? engine.currentRecordingExists : false,
-                isSoundMode: engine.soundMode
-            )
-            .frame(maxHeight: .infinity)
+            if let noteSolfege = engine.studioNoteSolfege {
+                // Studio note recording
+                studioNoteCard(solfege: noteSolfege, chordKey: engine.currentChordName,
+                               recorded: engine.currentRecordingExists)
+                    .frame(maxHeight: .infinity)
+            } else {
+                exerciseGraphicCard(
+                    exercise: engine.currentExercise,
+                    chordKey: engine.currentChordName,
+                    showLabel: $showCurrentLabel,
+                    recordingExists: engine.soundMode ? engine.currentRecordingExists : false,
+                    isSoundMode: engine.soundMode && !engine.studioMode
+                )
+                .frame(maxHeight: .infinity)
+            }
 
             Divider()
 
@@ -275,9 +316,16 @@ struct ContentView: View {
                 chordKey: engine.nextChordName,
                 showLabel: $showNextLabel,
                 recordingExists: engine.soundMode ? engine.nextRecordingExists : false,
-                isSoundMode: engine.soundMode
+                isSoundMode: engine.soundMode && !engine.studioMode
             )
             .frame(maxHeight: .infinity)
+
+            if engine.studioMode {
+                Text("\(engine.studioRecordedCount)/\(engine.studioTotal) recorded")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.orange)
+            }
 
             if engine.state == .paused {
                 Text("PAUSED")
@@ -306,9 +354,22 @@ struct ContentView: View {
             .padding(.bottom, 40)
         }
         .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 50)
+                .onEnded { value in
+                    if engine.studioMode {
+                        if value.translation.height < -50 {
+                            // Swipe up → next
+                            engine.advance()
+                        } else if value.translation.height > 50 {
+                            // Swipe down → previous
+                            engine.studioPrev()
+                        }
+                    }
+                }
+        )
         .onTapGesture {
             if engine.soundMode {
-                // In sound mode, tap reveals the exercise or advances
                 if engine.currentRecordingExists {
                     showCurrentLabel = true
                 } else {
@@ -323,13 +384,15 @@ struct ContentView: View {
                 let isLeftPedal = press.key?.keyCode == .keyboardUpArrow
                 let isRightPedal = press.key?.keyCode == .keyboardDownArrow
 
-                if engine.soundMode {
+                if engine.soundMode || engine.studioMode {
                     if isLeftPedal {
-                        // Left pedal: start/stop recording when armed
+                        // Left pedal: start/stop recording when armed, else prev in studio
                         if recordingMgr.state == .armed {
                             engine.startRecording()
                         } else if recordingMgr.state == .recording {
                             engine.stopRecording()
+                        } else if engine.studioMode {
+                            engine.studioPrev()
                         } else {
                             engine.advance()
                         }
@@ -452,6 +515,54 @@ struct ContentView: View {
                         }
                     }
                     .animation(.easeInOut(duration: 0.2), value: showLabel.wrappedValue)
+                }
+            }
+        }
+        .padding(12)
+    }
+
+    private func studioNoteCard(solfege: String, chordKey: String, recorded: Bool) -> some View {
+        let style = chordStyles[chordKey] ?? ChordStyle(color: .gray, dashed: false)
+        return VStack(spacing: 12) {
+            Text(displayName(for: chordKey))
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            Text(solfege.uppercased())
+                .font(.system(size: 60, weight: .bold, design: .rounded))
+                .foregroundColor(style.color)
+
+            if recorded {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(.green)
+            }
+
+            // Record / play controls
+            HStack(spacing: 16) {
+                if recorded {
+                    Button(action: { engine.playCurrentRecording() }) {
+                        Image(systemName: recordingMgr.state == .playing ? "speaker.wave.2.fill" : "play.circle")
+                            .font(.system(size: 28))
+                            .foregroundColor(.green.opacity(0.7))
+                    }
+                }
+                Button(action: {
+                    if recordingMgr.state == .recording {
+                        engine.stopRecording()
+                    } else if recordingMgr.state == .armed {
+                        recordingMgr.disarm()
+                    } else {
+                        engine.armRecording()
+                    }
+                }) {
+                    if recordingMgr.state == .recording {
+                        Circle().fill(Color.red).frame(width: 20, height: 20)
+                    } else if recordingMgr.state == .armed {
+                        Image(systemName: "mic.circle.fill").font(.system(size: 28)).foregroundColor(.red)
+                    } else {
+                        Image(systemName: "mic.circle").font(.system(size: 28)).foregroundColor(.red.opacity(0.5))
+                    }
                 }
             }
         }
