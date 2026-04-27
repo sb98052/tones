@@ -242,22 +242,21 @@ struct ContentView: View {
                 }
                 .disabled(enabledExercises.isEmpty)
 
-                // Studio mode button (disabled for now)
-                // Button(action: {
-                //     engine.enabledExercises = enabledExercises
-                //     engine.rotate = rotate
-                //     engine.recordingKeyPitch = selectedRecordingKey
-                //     engine.soundMode = true
-                //     engine.studioMode = true
-                //     engine.debugMode = false
-                //     engine.playMode = false
-                //     engine.start(progressionKey: selectedProgression)
-                // }) {
-                //     Image(systemName: "mic.badge.plus")
-                //         .font(.system(size: 36))
-                //         .foregroundColor(.orange)
-                // }
-                // .disabled(enabledExercises.isEmpty)
+                Button(action: {
+                    engine.enabledExercises = enabledExercises
+                    engine.rotate = rotate
+                    engine.recordingKeyPitch = selectedRecordingKey
+                    engine.soundMode = true
+                    engine.studioMode = true
+                    engine.debugMode = false
+                    engine.playMode = false
+                    engine.start(progressionKey: selectedProgression)
+                }) {
+                    Image(systemName: "mic.badge.plus")
+                        .font(.system(size: 36))
+                        .foregroundColor(.orange)
+                }
+                .disabled(enabledExercises.isEmpty)
             }
             .padding(.bottom, 40)
         }
@@ -303,7 +302,7 @@ struct ContentView: View {
                     chordKey: engine.currentChordName,
                     showLabel: $showCurrentLabel,
                     recordingExists: engine.soundMode ? engine.currentRecordingExists : false,
-                    isSoundMode: engine.soundMode && !engine.studioMode
+                    isSoundMode: engine.soundMode || engine.studioMode
                 )
                 .frame(maxHeight: .infinity)
             }
@@ -368,6 +367,10 @@ struct ContentView: View {
                     }
                 }
         )
+        .onChange(of: engine.studioIndex) { _, _ in
+            showCurrentLabel = false
+            showNextLabel = false
+        }
         .onTapGesture {
             if engine.soundMode {
                 if engine.currentRecordingExists {
@@ -396,6 +399,10 @@ struct ContentView: View {
                         } else {
                             engine.advance()
                         }
+                    } else if isRightPedal && engine.studioMode && recordingMgr.state == .recording {
+                        // Right pedal during recording in studio: cancel and re-arm
+                        engine.recordingManager.cancelRecording()
+                        engine.recordingManager.arm()
                     } else {
                         // Right pedal or any other key: advance
                         engine.advance()
@@ -421,7 +428,7 @@ struct ContentView: View {
                 let style = chordStyles[chordKey] ?? ChordStyle(color: .gray, dashed: false)
                 let graphic = parseGraphic(exercise: exercise, chordKey: chordKey, style: style)
 
-                if isSoundMode && recordingExists && !showLabel.wrappedValue {
+                if isSoundMode && !engine.studioMode && recordingExists && !showLabel.wrappedValue {
                     // Sound mode with recording: hidden graphic, show chord key + speaker
                     VStack(spacing: 12) {
                         Image(systemName: recordingMgr.state == .playing ? "speaker.wave.2.fill" : "speaker.fill")
@@ -441,7 +448,7 @@ struct ContentView: View {
                             if isSoundMode {
                                 HStack(spacing: 8) {
                                     // Play button (if recording exists)
-                                    if recordingExists {
+                                    if recordingExists || (engine.studioMode && engine.currentRecordingExists) {
                                         Button(action: { engine.playCurrentRecording() }) {
                                             Image(systemName: recordingMgr.state == .playing
                                                   ? "speaker.wave.2.fill" : "play.circle")

@@ -200,7 +200,8 @@ final class RecordingManager: ObservableObject {
     /// Play a recording transposed to the target key.
     /// If no source key is stored, plays at original pitch.
     func playRecording(hashKey: String, targetKeyPitch: Int? = nil) {
-        guard state == .idle else { return }
+        guard state == .idle || state == .armed else { return }
+        if state == .armed { state = .idle }
         let url = fileURL(for: hashKey)
         guard FileManager.default.fileExists(atPath: url.path) else { return }
 

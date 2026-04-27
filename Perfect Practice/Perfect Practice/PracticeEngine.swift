@@ -240,7 +240,8 @@ class PracticeEngine: ObservableObject {
         } else {
             return
         }
-        let targetKeyPitch = pitchClassForKey(keyOfTheDay().key)
+        // In studio mode, play at original pitch (no transposition)
+        let targetKeyPitch = studioMode ? nil : pitchClassForKey(keyOfTheDay().key)
         recordingManager.playRecording(hashKey: hashKey, targetKeyPitch: targetKeyPitch)
     }
 
@@ -334,7 +335,7 @@ class PracticeEngine: ObservableObject {
         var seenAgnosticHashes: Set<String> = []
         for chord in uniqueChords {
             let specs = catalog.exercisesForChord(chord, enabled: enabledExercises)
-            for spec in specs {
+            for spec in specs where !spec.noRecord {
                 let exercises = spec.generateAll(chordKey: chord, rotate: rotate)
                 for ex in exercises {
                     // Deduplicate chord-agnostic exercises (same hash for any chord)
@@ -420,9 +421,11 @@ class PracticeEngine: ObservableObject {
 
                 currentRecordingExists = recordingManager.recordingExists(for: entry.hashKey)
 
-                // Auto-arm if not yet recorded
+                // Auto-arm if not yet recorded, disarm if recorded
                 if !currentRecordingExists {
                     recordingManager.arm()
+                } else if recordingManager.state == .armed {
+                    recordingManager.disarm()
                 }
 
                 // Wait for advance or prev

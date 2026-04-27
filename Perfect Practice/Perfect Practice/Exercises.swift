@@ -14,6 +14,14 @@ struct ExerciseLine {
     let label: String
     let value: String
     let emphasis: Bool
+    let displayOnly: Bool  // shown in UI but excluded from recording hash
+
+    init(label: String, value: String, emphasis: Bool, displayOnly: Bool = false) {
+        self.label = label
+        self.value = value
+        self.emphasis = emphasis
+        self.displayOnly = displayOnly
+    }
 }
 
 struct Exercise {
@@ -27,14 +35,16 @@ struct Exercise {
     let playstyle: String   // "arpeggio" or "chord"
     let maxPosition: Int    // from exercise spec's max_position
     let chordAgnostic: Bool // same recording regardless of chord
+    let noRecord: Bool     // skip in studio mode
 
-    /// Deterministic hash key for recording lookup (excludes startNote — recorded separately).
+    /// Deterministic hash key for recording lookup (excludes display-only lines).
     func recordingHashKey(chordKey: String) -> String {
         let specId = typeName.lowercased().replacingOccurrences(of: " ", with: "_")
-        let lines = displayLines.map { $0.value.trimmingCharacters(in: .whitespaces) }.joined(separator: "-")
+        let lines = displayLines.filter { !$0.displayOnly }.map { $0.value.trimmingCharacters(in: .whitespaces) }.joined(separator: "-")
         let suffix = titleSuffix.trimmingCharacters(in: .whitespaces)
+        let note = startNote ?? "none"
         let chord = chordAgnostic ? "any" : chordKey
-        let raw = [specId, chord, lines, suffix].joined(separator: "__")
+        let raw = [specId, chord, lines, suffix, note].joined(separator: "__")
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_-"))
         return raw.unicodeScalars.map { allowed.contains($0) ? String($0) : "_" }.joined()
     }
@@ -208,10 +218,12 @@ struct ExerciseSpec: Identifiable {
     let simpleAtoms: [Atom]  // active when rotate is OFF
     let rotateAtoms: [Atom]  // active when rotate is ON
     let chords: Set<String>
+    let displayOnlyAtoms: Set<Atom>  // atoms shown in UI but excluded from recording hash
     let params: AtomParams
     let notes: [String]  // "1"-"7" for diatonic, "#6" for raised, "b3" for lowered
     let playstyle: String  // "arpeggio" or "chord"
     let chordAgnostic: Bool // same recording regardless of chord
+    let noRecord: Bool     // skip in studio mode
     let group: Int         // group number for probability distribution
     let groupWeight: Double // weight for this group (default 1.0)
     let disabled: Bool
@@ -222,7 +234,14 @@ struct ExerciseSpec: Identifiable {
         var allLines: [ExerciseLine] = []
         var used: Set<[String]> = []
         for atom in effectiveAtoms where atom != .notes {
-            allLines.append(contentsOf: atom.generate(params: params, used: &used))
+            let lines = atom.generate(params: params, used: &used)
+            if displayOnlyAtoms.contains(atom) {
+                allLines.append(contentsOf: lines.map {
+                    ExerciseLine(label: $0.label, value: $0.value, emphasis: $0.emphasis, displayOnly: true)
+                })
+            } else {
+                allLines.append(contentsOf: lines)
+            }
         }
 
         // If only one multiselect, fold its value into the title suffix
@@ -268,7 +287,8 @@ struct ExerciseSpec: Identifiable {
             startNote: startNote,
             playstyle: playstyle,
             maxPosition: params.maxPosition,
-            chordAgnostic: chordAgnostic
+            chordAgnostic: chordAgnostic,
+            noRecord: noRecord
         )
     }
 
@@ -281,7 +301,12 @@ struct ExerciseSpec: Identifiable {
         var multiselectIdx = 0
         var atomValueSets: [[[ExerciseLine]]] = []
         for atom in nonNoteAtoms {
-            let values = atom.allValues(params: params, multiselectIndex: multiselectIdx)
+            var values = atom.allValues(params: params, multiselectIndex: multiselectIdx)
+            if displayOnlyAtoms.contains(atom) {
+                values = values.map { lines in
+                    lines.map { ExerciseLine(label: $0.label, value: $0.value, emphasis: $0.emphasis, displayOnly: true) }
+                }
+            }
             atomValueSets.append(values)
             if atom == .multiselect { multiselectIdx += 1 }
         }
@@ -308,7 +333,16 @@ struct ExerciseSpec: Identifiable {
             solfege = solfegeNotes(for: chordKey, degrees: degrees)
         }
 
-        // Build all exercises (no startNote multiplication — notes recorded separately)
+        // Start note variants (chord tones 1, 3, 5)
+        let startNotes: [String?]
+        if rotate, !chordKey.isEmpty {
+            let chordTones = solfegeNotes(for: chordKey, degrees: [1, 3, 5] as [Any])
+            startNotes = chordTones.map { Optional($0) }
+        } else {
+            startNotes = [nil]
+        }
+
+        // Build all exercises
         var results: [Exercise] = []
         for lineCombo in allLineCombos {
             var allLines = lineCombo.flatMap { $0 }
@@ -327,18 +361,21 @@ struct ExerciseSpec: Identifiable {
             let displayLines = allLines.filter { $0.label != "_suffix" }
             let titleSuffix = suffixParts.joined(separator: " ")
 
-            results.append(Exercise(
-                typeName: name,
-                symbol: symbol,
-                category: category,
-                titleSuffix: titleSuffix,
-                displayLines: displayLines,
-                solfegeNotes: solfege,
-                startNote: nil,
-                playstyle: playstyle,
-                maxPosition: params.maxPosition,
-                chordAgnostic: chordAgnostic
-            ))
+            for startNote in startNotes {
+                results.append(Exercise(
+                    typeName: name,
+                    symbol: symbol,
+                    category: category,
+                    titleSuffix: titleSuffix,
+                    displayLines: displayLines,
+                    solfegeNotes: solfege,
+                    startNote: startNote,
+                    playstyle: playstyle,
+                    maxPosition: params.maxPosition,
+                    chordAgnostic: chordAgnostic,
+                    noRecord: noRecord
+                ))
+            }
         }
 
         return results
@@ -525,14 +562,15 @@ class ExerciseCatalog: ObservableObject {
               let exerciseArray = json["exercises"] as? [[String: Any]] else {
             return nil
         }
+        let displayOnly = Set((json["display_only"] as? [String] ?? []).compactMap { Atom(rawValue: $0) })
         var nameCounts: [String: Int] = [:]
         return exerciseArray.compactMap { dict -> ExerciseSpec? in
-            guard let spec = parseExercise(dict, nameCounts: &nameCounts) else { return nil }
+            guard let spec = parseExercise(dict, nameCounts: &nameCounts, displayOnlyAtoms: displayOnly) else { return nil }
             return spec
         }
     }
 
-    private static func parseExercise(_ dict: [String: Any], nameCounts: inout [String: Int]) -> ExerciseSpec? {
+    private static func parseExercise(_ dict: [String: Any], nameCounts: inout [String: Int], displayOnlyAtoms: Set<Atom> = []) -> ExerciseSpec? {
         guard let name = dict["name"] as? String else {
             return nil
         }
@@ -577,6 +615,7 @@ class ExerciseCatalog: ObservableObject {
         let category = dict["category"] as? String ?? "arpeggio"
         let playstyle = dict["playstyle"] as? String ?? "arpeggio"
         let chordAgnostic = dict["chordagnostic"] as? Bool ?? false
+        let noRecord = dict["norecord"] as? Bool ?? false
         let group = dict["group"] as? Int ?? 0
         let groupWeight = dict["groupweight"] as? Double ?? 1.0
         let disabled = dict["disabled"] as? Bool ?? false
@@ -590,10 +629,12 @@ class ExerciseCatalog: ObservableObject {
             simpleAtoms: simpleAtoms,
             rotateAtoms: rotateAtoms,
             chords: Set(chordStrings),
+            displayOnlyAtoms: displayOnlyAtoms,
             params: params,
             notes: notes,
             playstyle: playstyle,
             chordAgnostic: chordAgnostic,
+            noRecord: noRecord,
             group: group,
             groupWeight: groupWeight,
             disabled: disabled
